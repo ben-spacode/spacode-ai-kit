@@ -1,0 +1,23 @@
+name: ✨ Feature
+description: New feature or change (user story)
+labels: [feature]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: User story
+      value: "As a <role> I want <action> so that <benefit>"
+    validations: { required: true }
+  - type: textarea
+    id: ac
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - Given … When … Then …
+    validations: { required: true }
+  - type: input
+    id: prd
+    attributes: { label: PRD link }
+  - type: textarea
+    id: notes
+    attributes: { label: Design / data / integration notes }

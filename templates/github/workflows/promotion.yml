@@ -1,0 +1,30 @@
+name: Promotion Gate
+
+# PRs into staging / main: enforce ascending order and run release-level checks.
+on:
+  pull_request:
+    branches: [staging, main]
+
+jobs:
+  promotion-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce develop → staging → main
+        run: |
+          BASE="${{ github.base_ref }}"; HEAD="${{ github.head_ref }}"
+          if [ "$BASE" = "staging" ] && [ "$HEAD" != "develop" ]; then
+            echo "::error::PRs into staging must come from develop (got $HEAD)"; exit 1; fi
+          if [ "$BASE" = "main" ] && [ "$HEAD" != "staging" ] && [[ "$HEAD" != hotfix/* ]]; then
+            echo "::error::PRs into main must come from staging or hotfix/* (got $HEAD)"; exit 1; fi
+          echo "Promotion path OK: $HEAD → $BASE"
+
+  release-load-test:
+    # Full load test against staging before production (staging or hotfix head is deployed there).
+    if: github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: grafana/run-k6-action@v1
+        env: { BASE_URL: "${{ vars.API_URL }}" }
+        with: { path: tests/load/load.js }

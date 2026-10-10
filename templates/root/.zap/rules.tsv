@@ -1,0 +1,2 @@
+# ZAP baseline rules: <rule id>	<IGNORE|WARN|FAIL>	<description>
+10038	WARN	Content Security Policy header not set (tighten CSP, then change to FAIL)

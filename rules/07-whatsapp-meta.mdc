@@ -1,0 +1,56 @@
+---
+description: Rules for WhatsApp Cloud API / Meta integrations — webhooks, templates, 24h window, tokens, multi-tenant WABA. Use when working on WhatsApp bots, Meta webhooks, Embedded Signup or Meta Business assets.
+globs: ["**/whatsapp/**", "**/meta/**", "**/webhooks/**"]
+alwaysApply: false
+---
+
+# WhatsApp Business / Meta Cloud API
+
+## Architecture
+- One `whatsapp` module: `webhook.controller` (receive), `whatsapp.service` (send), `templates.service`,
+  `conversations.service`, BullMQ queues `wa-inbound` and `wa-outbound`.
+- Multi-tenant: each tenant maps to its own WABA ID + phone_number_id(s) + access token, stored encrypted.
+  Tenant is resolved from `phone_number_id` in the webhook payload — never trust a tenant id from the body.
+- Onboarding of client numbers through **Embedded Signup** (Spacode as Tech Provider). Store the
+  business token exchange result securely; never log it.
+- Pin the Graph API version in config (e.g. `META_GRAPH_VERSION`), upgrade deliberately with an ADR.
+
+## Webhooks
+- `GET` verification: compare `hub.verify_token` with the env secret, echo `hub.challenge`.
+- `POST`: verify `X-Hub-Signature-256` (HMAC-SHA256 of the **raw body** with the app secret) before anything else.
+- Return `200` within a few seconds; push the payload to `wa-inbound` and process async.
+- Deduplicate by `messages[].id` / `statuses[].id` (Meta retries). Store raw payloads (JSONB) for debugging with retention limits.
+- Handle statuses: `sent`, `delivered`, `read`, `failed` (store error code/title).
+
+## Messaging rules
+- **24-hour customer service window**: free-form messages only within 24h of the user's last inbound
+  message. Outside it, only **approved templates**.
+- Templates are defined in code/DB with name, language (`he`), category (MARKETING / UTILITY /
+  AUTHENTICATION), variables and example values; synced with Meta and their approval status tracked.
+- Marketing templates require recorded opt-in; honor opt-out keywords (e.g. "הסר", "STOP") immediately.
+- Respect messaging limits / quality rating per number; outbound sends go through the queue with rate limiting
+  and back-off on error codes (e.g. 131048/131056 rate/spam limits, 130429 throughput).
+- Phone numbers stored in E.164 (`9725XXXXXXXX`), normalized on input.
+
+## Tokens & assets
+- Use **System User** tokens (non-expiring or long-lived) for server calls, never personal user tokens.
+- Monitor token validity and webhook subscription health; alert on failure.
+- Separate Meta app / test number for develop and staging. Never send from the production number in tests.
+
+## Every system gets an official WhatsApp channel
+Connected officially through Meta (Cloud API, Embedded Signup — never unofficial libraries/WhatsApp Web
+automation, which risk bans). It serves four functions, all logged to the CRM:
+1. **Customer service** — the system's AI customer-service agent answers, with human hand-off.
+2. **Lead generation** — click-to-WhatsApp ads, website/landing buttons, QR codes; every entry point carries a
+   source tag (`ref`/prefilled text/UTM) so the lead is created with its source.
+3. **Lead warming (nurturing)** — sequences of approved templates + in-window messages, triggered by lead stage
+   and behavior, with frequency caps, quiet hours (no sends on Shabbat/holidays or late night unless the client
+   decides otherwise) and immediate stop on reply or opt-out.
+4. **Lead assignment** — routing rules by **group** (product, region, language, segment) and **source**
+   (campaign, channel, landing page); round-robin or weighted within a group; SLA timer and re-assignment if no response.
+Implementation: skill `whatsapp-lead-engine`.
+
+## Bots & AI on WhatsApp
+- Bot flows are state machines persisted per conversation (state, context, last_inbound_at).
+- Always offer a path to a human agent; hand-off pauses the bot for that conversation.
+- AI replies follow the AI-agent rules (guardrails, cost limits, no PII leakage to logs).

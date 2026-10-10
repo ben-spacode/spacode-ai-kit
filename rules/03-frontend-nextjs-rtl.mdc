@@ -1,0 +1,51 @@
+---
+description: Next.js conventions — website and admin system in one project with folder separation, Hebrew RTL, i18n, accessibility, organic-ready structure in both areas.
+globs: ["apps/web/**", "app/**", "components/**", "src/app/**", "**/*.tsx"]
+alwaysApply: false
+---
+
+# Frontend — Next.js (Website + Admin in one project)
+
+## Project structure
+```
+app/
+  (site)/                 public website — marketing pages, blog/articles, landing pages
+    layout.tsx            site header/footer, analytics + pixels, Organization schema
+    page.tsx · about/ · services/ · blog/[slug]/ · lp/[slug]/
+  (admin)/admin/          management system — behind auth
+    layout.tsx            admin shell, auth guard, no marketing pixels
+  api/                    route handlers (webhooks, forms, revalidation)
+  sitemap.ts · robots.ts · manifest.ts · opengraph-image.tsx
+components/
+  ui/                     shared primitives (design tokens)
+  site/ · admin/          area-specific components — never import admin code into site and vice versa
+lib/  (api client, seo helpers, analytics)   messages/ (he.json, en.json)   content/ (MDX articles if file-based)
+```
+- Middleware protects `/admin/**` (auth + role). Site and admin share tokens and `components/ui` only.
+- Server Components by default; `"use client"` only where needed. One typed API client; no raw `fetch` URLs in components.
+- Forms: React Hook Form + zod (same schema as the backend where possible).
+
+## Organic infrastructure in both areas
+- **Site:** full SEO foundation per `10-seo-organic` (metadata API, canonical, structured data, sitemap,
+  robots, Core Web Vitals, internal linking, articles).
+- **Admin:** private pages are `noindex, nofollow` and excluded from the sitemap — but the admin still gets the
+  same technical foundation: semantic HTML, metadata/titles per page, fast loading, accessibility, clean URLs,
+  and its public entry points (login, sign-up, pricing, help center) are optimized and indexable.
+
+## RTL & language
+- `<html lang="he" dir="rtl">`. Logical CSS only (`ms/me/ps/pe/start/end`, `margin-inline`), never left/right.
+- Directional icons flip; numbers/phones/emails/code isolated LTR (`<bdi>` / `dir="ltr"`).
+- All user-facing strings in `messages/*.json`. Dates `he-IL` + `Asia/Jerusalem`; currency ILS via `Intl`.
+- Hebrew-friendly fonts via `next/font` (Heebo, Rubik, Assistant…), `display: swap`.
+
+## Accessibility — Israeli Standard 5568 / WCAG 2.1 AA (legally required for public sites)
+Semantic HTML, labelled inputs, visible focus, full keyboard use, contrast ≥ 4.5:1, alt text, skip link,
+accessibility statement page. Automated axe checks in the full test suite.
+
+## Quality
+- Design tokens from the Stitch design / brand guide in one place (Tailwind theme / CSS variables). No magic values.
+- Every data view: loading, empty, error, no-permission states. Mobile-first; test at 375px.
+- `next/image`, `next/font`, dynamic import for heavy client components. Budgets: LCP < 2.5s, INP < 200ms, CLS < 0.1.
+
+## Security
+No secrets in `NEXT_PUBLIC_*`. Auth tokens in httpOnly Secure SameSite cookies. CSP and security headers via `next.config` / middleware.

@@ -1,0 +1,7 @@
+# Default owner for everything
+*                      @{{GITHUB_OWNER}}
+# Sensitive areas — always require owner review
+/.github/              @{{GITHUB_OWNER}}
+/infra/                @{{GITHUB_OWNER}}
+**/migrations/         @{{GITHUB_OWNER}}
+/.cursor/rules/        @{{GITHUB_OWNER}}

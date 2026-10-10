@@ -1,0 +1,41 @@
+---
+description: PostgreSQL schema design, migrations, and multi-tenant data isolation.
+globs: ["**/prisma/**", "**/migrations/**", "**/*.entity.ts", "**/*.repository.ts", "**/schema.prisma"]
+alwaysApply: false
+---
+
+# Database & Multi-Tenancy
+
+## Tenant isolation — the most important rule in this codebase
+- Every tenant-owned table has `tenant_id UUID NOT NULL` with an index (usually composite, tenant first).
+- Tenant context is resolved **once** per request (from the auth token / subdomain) and propagated via
+  request-scoped context (e.g. `AsyncLocalStorage` / CLS). Services read it from there — never from client input.
+- All queries on tenant-owned tables are scoped by `tenant_id` in the data layer (repository / ORM
+  extension / middleware), not ad-hoc in controllers.
+- Defense in depth: enable **Postgres Row-Level Security** on tenant tables where possible, with
+  `SET app.tenant_id` per transaction.
+- Unique constraints are per tenant: `UNIQUE (tenant_id, email)`, not `UNIQUE (email)`.
+- Background jobs, webhooks and cron tasks must set tenant context explicitly from the payload.
+- Every new endpoint that reads/writes tenant data needs a test proving tenant A cannot access tenant B.
+
+## Schema conventions
+- Table names `snake_case` plural; columns `snake_case`. Primary keys `id UUID` (v7 preferred) default generated.
+- Standard columns: `created_at`, `updated_at` (timestamptz, UTC), and `deleted_at` for soft delete where business requires history.
+- Foreign keys always declared, with explicit `ON DELETE` behavior.
+- Money as `bigint` agorot or `numeric(12,2)` — never `float`.
+- Enums: Postgres enum or a lookup table; document values in the ERD.
+- Index every FK and every column used in WHERE/ORDER BY of hot queries. Check with `EXPLAIN ANALYZE` for list endpoints.
+- JSONB only for genuinely schemaless data (e.g. raw webhook payloads, AI metadata), not to avoid modelling.
+
+## Migrations
+- Every schema change is a committed migration. No manual changes in any environment.
+- Migrations are forward-only in production but **must include a tested down/rollback path** (or a documented compensating migration).
+- Zero-downtime pattern for breaking changes: expand → backfill (job) → switch code → contract (separate release).
+- Never rename/drop a column in the same release that stops using it.
+- Large backfills run as batched BullMQ jobs, not inside the migration.
+- Migration file names describe intent: `20261007_add_contacts_phone_index`.
+
+## Data safety
+- Automated daily backups with tested restore on staging (PITR on AWS RDS / Railway backups).
+- Production data never copied to lower environments without anonymization.
+- Personal data fields documented in `docs/erd/` with a "PII" marker for privacy-law obligations.

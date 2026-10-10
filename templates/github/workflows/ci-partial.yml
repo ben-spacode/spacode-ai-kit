@@ -1,0 +1,37 @@
+name: CI Partial
+
+# Partial test level — every PR from a work branch into develop.
+on:
+  pull_request:
+    branches: [develop]
+
+concurrency:
+  group: partial-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  partial:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Commit messages (Conventional Commits)
+        run: pnpm exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test -- --coverage
+      - run: pnpm build
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+      - name: Dependency audit (Node)
+        run: pnpm audit --audit-level=high
+      - name: Dependency audit (Python, if present)
+        if: hashFiles('**/pyproject.toml') != ''
+        run: |
+          pipx install pip-audit
+          for d in $(dirname $(git ls-files '**/pyproject.toml')); do (cd "$d" && pip-audit .) ; done

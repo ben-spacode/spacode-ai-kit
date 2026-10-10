@@ -1,0 +1,60 @@
+---
+description: Server engine rules — Node.js (NestJS) or Python (FastAPI), Next.js server code, API conventions, errors, config, queues, logging.
+globs: ["apps/api/**", "apps/engine/**", "apps/agents/**", "services/**", "src/**/*.ts", "**/*.py", "app/api/**"]
+alwaysApply: false
+---
+
+# Backend / Server Engine
+
+## Choosing the server
+- **Inside Next.js** (route handlers, server actions): simple CRUD for the site/admin, forms, auth callbacks.
+- **Separate server engine** when there is a mobile app, heavy business logic, background jobs, public API,
+  WhatsApp/AI processing, or multiple clients. Choose:
+  - **Node.js — NestJS** (default; shares TypeScript types with Next.js/Expo).
+  - **Python — FastAPI** when the core is data/AI/ML heavy or needs Python libraries. Record in an ADR.
+
+## Node.js (NestJS) layout
+```
+src/modules/<domain>/  <domain>.module.ts · controller · service · repository · dto/ · jobs/ · *.spec.ts
+src/common/            guards, interceptors, filters, decorators, config
+```
+Controllers: HTTP only. Services: business logic, no HTTP objects. Global `ValidationPipe({ whitelist, forbidNonWhitelisted, transform })`.
+
+## Python (FastAPI) layout
+```
+app/
+  main.py               app factory, middleware, routers
+  core/                 config (pydantic-settings), security, logging
+  api/v1/<domain>.py    routers (HTTP only)
+  services/<domain>.py  business logic
+  repositories/         SQLAlchemy 2.x (async) data access
+  models/ · schemas/    ORM models · Pydantic v2 schemas
+  workers/              background jobs (arq / Celery / RQ on Redis)
+migrations/             Alembic
+tests/                  pytest (+ httpx AsyncClient)
+pyproject.toml          uv or poetry; ruff + mypy configured
+```
+Type hints everywhere, `mypy --strict` on new modules, `ruff` lint + format.
+
+## API conventions (both)
+- REST, versioned `/api/v1/...`, plural kebab-case resources. OpenAPI kept accurate (protected in production).
+- Validate every input; reject unknown fields.
+- Paginated lists (`limit` ≤ 100 or cursor) returning `{ data, meta }`.
+- One error shape: `{ "error": { "code", "message", "details", "requestId" } }`; correct status codes.
+- `Idempotency-Key` supported on payments, messaging and other non-repeatable POSTs.
+
+## Config
+Validated config at startup (zod/joi or pydantic-settings); fail fast on missing variables. Read env only in the config module.
+
+## Background work
+Slow, external or retryable work (WhatsApp/email sends, AI calls, webhook processing, imports/exports, reports)
+runs in a queue on Redis (BullMQ / arq / Celery): idempotent, retries with backoff, `tenantId` in payload,
+failed jobs monitored.
+
+## Logging & observability
+Structured JSON logs with `requestId`, `tenantId`, `userId` — never PII or secrets. `/health/live` and
+`/health/ready` (DB + Redis). Errors to Sentry with environment tag.
+
+## Code basics
+Strict typing; no unexplained `any`/`# type: ignore`. Store time in UTC, display `Asia/Jerusalem`.
+Money as integer agorot or `numeric` — never float.

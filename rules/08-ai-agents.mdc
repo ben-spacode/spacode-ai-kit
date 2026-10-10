@@ -1,0 +1,60 @@
+---
+description: Rules for building LLM-powered AI agents and features — prompts, tools, evals, cost, safety, privacy. Use when touching AI agents, prompts, LLM calls, RAG or embeddings.
+globs: ["**/ai/**", "**/agents/**", "**/prompts/**", "**/llm/**"]
+alwaysApply: false
+---
+
+# AI Agents & LLM Features
+
+## Every system gets one AI customer-service agent — on an expandable agents service
+- Each system ships with **one customer-service agent** (website chat widget + WhatsApp + admin inbox),
+  grounded in the system's knowledge base (FAQ, services, pricing, policies) and able to create leads/tickets.
+- It runs on a dedicated **agents service** (its own Railway service) built so new agents (sales, support,
+  onboarding, back-office) are added by configuration + prompt + tools, without changing the core.
+- Provider is chosen per project: **Claude API (Anthropic) or OpenAI API**, behind one `LlmProvider` interface;
+  switching provider is a config change plus an eval run.
+- Implementation: skill `customer-service-agent` (and `ai-agent-builder` for additional agents).
+
+## Structure
+```
+src/modules/ai/
+  providers/        # one adapter per provider (anthropic, openai, ...) behind a common LlmProvider interface
+  agents/<agent>/   # agent definition: system prompt file, tools, config, evals
+  prompts/          # versioned prompt files (.md) — never long prompt strings inline in code
+  tools/            # tool implementations with zod input schemas
+  evals/            # golden datasets + runner
+```
+- Model names, temperature, max tokens and provider are **config**, not hard-coded.
+- Prompts are versioned files; a prompt change is a reviewed change with eval results in the PR.
+
+## Tools / function calling
+- Every tool has a strict input schema and validates its input server-side.
+- Tools enforce tenant scope and the calling user's permissions — the model is never trusted to do so.
+- Destructive or external-side-effect tools (send message, charge, delete) require explicit confirmation
+  or run in "propose" mode for a human to approve.
+- Limit agent loops (max steps / max tool calls) and total timeout.
+
+## Safety
+- Treat all user input and retrieved content (web, documents, emails, WhatsApp messages) as untrusted:
+  defend against prompt injection — never let retrieved text change system instructions or tool permissions.
+- Output validation: parse structured outputs with a schema; on failure retry once, then fall back.
+- Clear fallback when the model fails/times out (canned reply, human hand-off).
+- Disclose to end users that they are talking to an AI where relevant.
+
+## Cost & reliability
+- Per-tenant and per-feature token budgets and rate limits; usage logged (tokens in/out, model, latency, cost estimate, tenantId).
+- Use prompt caching for long stable system prompts; choose the smallest model that passes evals.
+- LLM calls run in BullMQ when not user-blocking; streaming for user-facing chat.
+
+## Privacy
+- Send the minimum necessary data to the provider; mask phone numbers, IDs and payment data.
+- Do not log full prompts/responses containing PII in production; log hashes/ids + metadata.
+- Use providers/settings that do not train on customer data; document data flow in the ADR.
+
+## Evals (required)
+- Each agent has `evals/` with ≥ 20 golden cases (Hebrew + edge cases + injection attempts).
+- Evals run in CI on prompt/model changes; regression = failing PR.
+
+## RAG
+- Chunks stored with `tenant_id`; retrieval always filtered by tenant. pgvector preferred to keep stack simple.
+- Store source references so answers can cite the document/section.

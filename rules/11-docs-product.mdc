@@ -1,0 +1,49 @@
+---
+description: Documentation, product management and maintenance rules — PRD, ERD, ADR, CHANGELOG, runbooks, client handoff. Use when writing or updating docs or planning features.
+globs: ["docs/**", "README.md", "CHANGELOG.md"]
+alwaysApply: false
+---
+
+# Documentation & Product Management
+
+## Repository docs layout
+```
+docs/
+  prd/        PRD-<nnn>-<slug>.md      product requirements per feature/epic
+  erd/        ERD.md (+ mermaid diagram) data model, kept current
+  adr/        ADR-<nnnn>-<slug>.md     architecture decisions (immutable once accepted; supersede, don't edit)
+  runbooks/   deploy.md, rollback.md, incident.md, on-call per system
+  postmortems/YYYY-MM-DD-<slug>.md
+  handoff/    client-facing operation & maintenance guide
+  design/     DESIGN-BRIEF.md (reference sites, Stitch project/screen ids)
+  brand/      BRAND-GUIDE.md
+  testing/    TEST-PLAN.md
+  marketing/  keyword-map.csv, CONTENT-PLAN.md, PAID-ADS-APPENDIX.md, experiments.md
+  product/    POC.md, MVP.md
+  business/   BUSINESS-MODEL.md, FORECAST.md, INVESTOR-DECK.md, reports/
+README.md     what it is, how to run locally, env vars, scripts, links to docs
+CHANGELOG.md  Keep a Changelog format, updated in every promotion PR
+```
+
+## PRD minimum
+Problem, users/personas, goals & success metrics, scope / out of scope, user stories with acceptance
+criteria (Given/When/Then), UX notes/links (Figma), data & integrations, non-functional requirements
+(performance, security, privacy, RTL), risks, open questions, status.
+
+## ERD
+- Mermaid `erDiagram` in `docs/erd/ERD.md`, one table section per entity: columns, types, constraints, indexes, PII flag, tenant-owned yes/no.
+- Updated in the same PR as the migration.
+
+## ADR
+Context → Decision → Alternatives considered → Consequences. Numbered sequentially. ADR-0001 records the
+stack and hosting choice for the project.
+
+## Tickets
+- Each ticket: user story or bug report, acceptance criteria, estimate, labels (`feature`, `bug`,
+  `tech-debt`, `security`, `client-request`), environment found in.
+- Bugs: steps to reproduce, expected vs actual, env, logs/screenshots, severity (S1–S4).
+
+## Maintenance (שוטף)
+- Monthly: dependency updates, security advisories, backup restore test (staging), cost review, error-tracker triage.
+- Quarterly: access review (who has prod/Meta/AWS access), secret rotation where needed, Meta Graph API version check.
+- Every incident gets a blameless postmortem within 3 business days.

@@ -1,0 +1,26 @@
+---
+description: Product and business deliverables across the project lifecycle — POC validation on the web, MVP, current and future business model, investor deck, quarterly and annual reports infrastructure. Use when planning stages, validating an idea, or preparing business documents.
+globs: ["docs/business/**", "docs/product/**"]
+alwaysApply: false
+---
+
+# Product & Business Lifecycle
+
+| Stage | Deliverable | Location | Skill |
+|---|---|---|---|
+| Before build | **POC validated through the internet** — hypothesis, smoke-test landing page / waitlist / interviews / small paid test, success criteria decided in advance | `docs/product/POC.md` | `mvp-poc` |
+| Build | **MVP v1** — smallest version that delivers the core value to real users; scope list with explicit cuts | `docs/product/MVP.md` | `mvp-poc` |
+| Build → launch | **Current business model** (Lean Canvas / Business Model Canvas, pricing, unit economics) | `docs/business/BUSINESS-MODEL.md` | `business-model` |
+| After project completion | **Future business model forecast** — 3–5 year forecast with scenarios (conservative/base/optimistic), assumptions table | `docs/business/FORECAST.md` + spreadsheet | `business-model` |
+| After project completion | **Investor deck** | `docs/business/INVESTOR-DECK.md` (outline) → deck | `investor-deck` |
+| After project completion | **Quarterly & annual reports infrastructure** — KPI definitions, data sources, metrics tables/views, dashboard, report templates | `docs/business/reports/` + code | `periodic-reports` |
+
+## Rules
+- POC validation must be honest: fake-door tests disclose availability ("בקרוב — הצטרפו לרשימת ההמתנה"); no
+  charging for things that don't exist; decide pass/fail thresholds **before** running the test.
+- Every number in a business model, forecast or deck is either measured (cite the source/date) or an explicit
+  assumption in the assumptions table. Never present assumptions as results.
+- Forecasts and reports are management tools, not accounting or legal statements — financial statements for
+  authorities are prepared with the client's accountant.
+- KPIs are computed by code from the system's data (not typed by hand), so reports are reproducible.
+- Keep these documents in the repo so they evolve with the product; final decks/reports are exported for sharing.

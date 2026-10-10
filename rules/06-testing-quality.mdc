@@ -1,0 +1,56 @@
+---
+description: Testing strategy — partial tests before develop, full functional + non-functional suite (E2E, performance, load, security, accessibility, visual, compatibility) from develop to production; quality gates block merges.
+alwaysApply: true
+---
+
+# Testing & Quality Gates
+
+## Two levels
+**Partial** — on every PR from a work branch into `develop` (fast, < ~10 min):
+lint · typecheck · unit tests · build · secret scan (gitleaks) · dependency audit (high/critical) · commitlint.
+
+**Full** — on `develop` after merge, on PR `develop → staging`, on `staging`, and on PR `staging → main`:
+everything in Partial **plus all of the following**.
+
+### Functional testing
+| Type | Tool (default) | Scope |
+|---|---|---|
+| Unit | Jest/Vitest · pytest | business rules, utils, services |
+| Integration | Testcontainers / CI services (Postgres + Redis) | API endpoints against a real DB |
+| Contract / API | OpenAPI schema validation (schemathesis / dredd-style) | API matches the published contract |
+| End-to-end (E2E) | **Playwright** (web) · **Maestro** or Detox (mobile) | critical user journeys on a deployed environment |
+| Regression | the E2E + integration suites | every bug fix adds a reproducing test |
+| Smoke | Playwright tagged `@smoke` | after each deploy |
+| Tenant isolation | integration | tenant A cannot touch tenant B — every tenant endpoint |
+| UAT | checklist in the promotion PR | client/CTO sign-off before `main` |
+
+### Non-functional testing
+| Type | Tool (default) | Gate |
+|---|---|---|
+| Performance (web) | **Lighthouse CI** | Performance, Accessibility, Best Practices, SEO ≥ 90 on key pages (mobile) |
+| Load / stress | **k6** | smoke load on develop/staging; full load before `main`: p95 < 500ms at expected peak, error rate < 1% |
+| Security — SAST | CodeQL / Semgrep | no high/critical |
+| Security — DAST | **OWASP ZAP** baseline against staging | no high alerts |
+| Dependencies / supply chain | npm/pnpm audit, pip-audit, OSV-Scanner | no known high/critical vulns |
+| Secrets | gitleaks | none |
+| Accessibility | axe-core via Playwright | zero serious/critical violations (IS 5568 / WCAG 2.1 AA) |
+| Visual regression | Playwright screenshots | no unapproved diffs |
+| Compatibility | Playwright projects: Chromium, WebKit, Firefox + mobile viewports; EAS builds on iOS + Android | all pass |
+| Resilience | tests for timeouts/retries of external services (Meta, AI, payments) | graceful degradation |
+| SEO technical | sitemap/robots/canonical/structured-data checks | valid |
+
+## Gates (enforced by branch protection — red = cannot merge)
+| Gate | Required |
+|---|---|
+| PR → `develop` | Partial |
+| PR `develop → staging` | Full on `develop` environment, green |
+| PR `staging → main` | Full on `staging` + full load test + UAT + security review |
+| After prod deploy | Smoke on production; watch errors 30 min; roll back on failure |
+
+## Writing tests
+- Arrange/Act/Assert; one behavior per test; descriptive names.
+- Factories for test data; each test creates its own tenant. No real external calls (Meta, AI, payments) in
+  unit/integration — fakes or recorded fixtures. E2E uses `data-testid`, never translated text.
+- New/changed code ≥ 80% line coverage; every bug fix ships with a failing-first test.
+- Flaky test = bug: quarantine with an issue and fix within the sprint. Never `.skip` to get green.
+- Test plan per project in `docs/testing/TEST-PLAN.md` (skill: `full-test-suite`).

@@ -1,0 +1,31 @@
+---
+description: Design workflow — choose a reference site, generate the design in Google Stitch through the Stitch MCP configured in Cursor, and pull it into the project only after the skeleton is ready, mapped to design tokens and components. Use for any UI design, screen, redesign or design system work.
+globs: [".cursor/mcp.json", "docs/design/**", "components/ui/**", "tailwind.config.*", "app/globals.css"]
+alwaysApply: false
+---
+
+# Design — Stitch via MCP
+
+## Setup (once per machine/project)
+- Stitch MCP is configured in Cursor in `.cursor/mcp.json` (project) — remote server
+  `https://stitch.googleapis.com/mcp` with header `X-Goog-Api-Key` read from an environment variable
+  (`${env:STITCH_API_KEY}`), never a literal key. `.cursor/mcp.json` contains no secrets and may be committed.
+- Verify the server shows as connected in Cursor Settings → MCP before starting design work. If tools are missing,
+  stop and tell the human instead of improvising a design by hand.
+
+## Workflow (order matters)
+1. **Reference:** the client/CTO chooses an existing site (or 2–3) as the visual reference. Record URL(s), what to
+   take (layout, mood, typography, components) and what not to copy in `docs/design/DESIGN-BRIEF.md`.
+   Use references for inspiration only — never copy another brand's logo, imagery, copy or distinctive trade dress.
+2. **Generate in Stitch via MCP:** create a Stitch project, generate the key screens (site home, landing page,
+   admin dashboard, list/detail/form, mobile screens if an app) from the brief + brand guide, iterate there.
+   Record the Stitch project/screen IDs in `docs/design/DESIGN-BRIEF.md`.
+3. **Skeleton first:** routes, layouts, auth, data flow, `components/ui` primitives and tokens exist and work
+   before any design is pulled in.
+4. **Pull from MCP into the project:** fetch the screens' code/assets via the Stitch MCP and **adapt** them —
+   map colors/typography/spacing to tokens, replace generated markup with project components, convert to RTL
+   logical properties, Hebrew strings into i18n files, add states and accessibility. Generated code is a
+   reference, never pasted as-is.
+5. **Review:** compare implementation to Stitch screens (desktop + 375px), run accessibility checks, get CTO sign-off.
+
+Skill: `stitch-design`.

@@ -1,0 +1,20 @@
+name: CodeQL (SAST)
+on:
+  push:
+    branches: [develop, staging, main]
+  pull_request:
+    branches: [develop, staging, main]
+  schedule:
+    - cron: "0 4 * * 0"
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions: { security-events: write, contents: read, actions: read }
+    strategy:
+      matrix:
+        language: [javascript-typescript]   # add "python" if the project has a Python engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with: { languages: "${{ matrix.language }}" }
+      - uses: github/codeql-action/analyze@v3

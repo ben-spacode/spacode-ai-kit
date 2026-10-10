@@ -1,0 +1,42 @@
+---
+description: Mobile app rules — Expo (React Native, TypeScript), EAS Build/Submit/Update for Android and iOS, environment mapping to develop/staging/main, store compliance.
+globs: ["apps/mobile/**", "app.json", "app.config.ts", "eas.json"]
+alwaysApply: false
+---
+
+# Mobile — Expo + EAS
+
+## Stack
+- Expo SDK (latest stable that passes dependency vetting), TypeScript strict, **Expo Router**, React Query for
+  server state, zustand (or similar) for local state, React Hook Form + zod, `expo-secure-store` for tokens.
+- Backend: the project's server engine (Node.js/NestJS or Python/FastAPI) — the app never talks to the DB directly.
+- Hebrew RTL: `I18nManager.forceRTL` decided at app start (with reload), `expo-localization`, logical styles
+  (`marginStart`/`paddingEnd`), strings in i18n files.
+- Install native-compatible packages with `npx expo install` (keeps versions aligned with the SDK); run
+  `npx expo-doctor` in CI.
+
+## Configuration
+- `app.config.ts` reads `APP_VARIANT` (`development` | `preview` | `production`) to set name, bundle id/package,
+  icon and API URL — so all three can be installed side by side.
+- No secrets in the app bundle; only public config (`EXPO_PUBLIC_*`). Secrets stay on the server.
+
+## EAS mapping to branches
+| Branch | EAS build profile | Distribution | EAS Update channel |
+|---|---|---|---|
+| `develop` | `development` / `preview` | internal (dev client / internal testers) | `development` |
+| `staging` | `preview` | internal — TestFlight + Play internal testing | `staging` |
+| `main` | `production` | stores — `eas submit` to App Store Connect + Google Play | `production` |
+- Builds are triggered from GitHub (EAS GitHub workflow / `expo/expo-github-action`), never from a laptop for staging/production.
+- OTA updates (`eas update`) only for JS/asset changes compatible with the current `runtimeVersion`; native changes need a new build.
+- Version: `version` (SemVer, user-facing) + auto-incremented build numbers (`autoIncrement` in eas.json, remote app version source).
+- Store submission and phased release require human approval.
+
+## Store compliance checklist (before first submission)
+Privacy policy URL, Apple privacy "nutrition labels" and Google Data Safety form filled honestly, account
+deletion in-app (required by both stores when sign-up exists), App Tracking Transparency prompt if tracking,
+permissions with clear Hebrew purpose strings, screenshots per required device sizes, content rating, test
+account for reviewers, Sign in with Apple if other social logins exist on iOS.
+
+## Testing
+Unit (Jest + React Native Testing Library), E2E with **Maestro** flows on preview builds (full suite level),
+real-device checks on at least one iOS and one Android device before `main`. Crash reporting (Sentry) per variant.

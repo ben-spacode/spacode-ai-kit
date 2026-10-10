@@ -1,0 +1,56 @@
+---
+description: Git branching (develop/staging/main), local vs cloud branches, promotion order, test levels per branch, commits and PRs.
+alwaysApply: true
+---
+
+# Git & Environments
+
+## The three main branches
+| Branch | Where it exists | Environment | Purpose |
+|---|---|---|---|
+| `develop` | **Local + GitHub** — the **only** main branch on the developer machine | Railway `development` | Integration of all work |
+| `staging` | **GitHub only** | Railway `staging` | Production-like testing (same config/infra shape as prod, separate data). **Not** production |
+| `main` | **GitHub only** | Railway `production` | Real users. **Must work with zero known bugs** |
+
+- Locally you work on `develop` and on short-lived work branches created **from** `develop`.
+  Never check out, create or track `staging`/`main` locally (`git fetch` to inspect remote refs is fine).
+- Work branches sit **before** `develop`: `feature/<ticket>-<slug>`, `fix/<ticket>-<slug>`,
+  `chore/<slug>`, `docs/<slug>` → PR into `develop`.
+- `hotfix/<slug>` is the only exception: created on GitHub from `main`; its pushes run the full pipeline on the
+  **staging** environment; then PR into `main`, and back-merge `main → staging → develop` the same day.
+
+## Promotion order — always ascending, never skip
+`work branch → develop → staging → main`
+- PRs into `staging` come only from `develop`; PRs into `main` come only from `staging` (or `hotfix/*`).
+  CI enforces this (`promotion-guard`).
+- `main` never contains a commit that isn't in `staging`; `staging` never one that isn't in `develop`.
+- Updating Railway happens **only** by merging on GitHub — GitHub triggers Railway. Never deploy around Git.
+
+## Test levels per branch
+| Stage | Level | What runs |
+|---|---|---|
+| PR: work branch → `develop` | **Partial** | lint, typecheck, unit, build, secret scan, dependency audit |
+| `develop` (after merge) and PR `develop → staging` | **Full** | everything in partial + integration, contract, E2E, accessibility, performance/Lighthouse, security (SAST/DAST), load smoke, visual regression |
+| PR `staging → main` | **Full + release** | full suite on staging + load test + UAT sign-off + security review |
+| After prod deploy | Smoke | read-only health and critical-path checks |
+Details in `06-testing-quality`.
+
+## Merge blocking
+- Branch protection on `develop`, `staging`, `main`: required status checks must be **green** — no merge
+  while any check is red or pending. No direct pushes. Enforced for admins on `staging` and `main`.
+- Conversations must be resolved before merge.
+
+## Commits — Conventional Commits
+`<type>(<scope>): <summary>` — `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`, `build`, `ci`,
+`revert`; `!` / `BREAKING CHANGE:` for breaking changes. English, imperative, ≤ 72 chars.
+
+## Pull requests
+- Use the PR template, link the issue, explain *why*. Include test evidence, screenshots, migrations,
+  env changes and a rollback plan. Prefer < 400 changed lines.
+- Squash-merge work branches into `develop`; merge commits for promotions. Tag `vX.Y.Z` on every merge to `main`.
+
+## Environments
+- Each environment has its own database, Redis, secrets, Meta app / WhatsApp test number, payment sandbox,
+  analytics property (or filtered view), and domain (`dev.`, `staging.`, apex).
+- `development` and `staging` are `noindex` and protected; pixels/analytics in test mode.
+- Production data never copied down unless anonymized.

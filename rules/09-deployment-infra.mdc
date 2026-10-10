@@ -1,0 +1,60 @@
+---
+description: Deployment on Railway driven only by GitHub — one Railway service per component, three environments, CI-gated deploys, mobile releases through EAS, monitoring and rollback.
+globs: ["Dockerfile*", "docker-compose*.yml", ".github/workflows/**", "railway.*", "**/railway.json", "eas.json", "infra/**"]
+alwaysApply: false
+---
+
+# Deployment & Infrastructure — Railway via GitHub
+
+## Principle
+**GitHub first, Railway second.** Code reaches Railway only by merging on GitHub; the merge triggers the
+deploy. Nobody deploys from a laptop (`railway up` locally is forbidden), and nothing is changed in Railway
+that isn't reflected in the repo (config-as-code in `railway.json` per service where possible).
+
+## Railway layout
+One Railway **project** per product, three **environments** mapped to branches:
+| Railway environment | Branch | Deploy trigger |
+|---|---|---|
+| `development` | `develop` | merge to `develop`, after CI green |
+| `staging` | `staging` | merge to `staging`, after CI green |
+| `production` | `main` | merge to `main`, after CI green **and** GitHub Environment approval |
+
+**One service per component** in every environment:
+| Service | Content |
+|---|---|
+| `web` | Next.js — website + admin system |
+| `landing` | landing page(s), only if deployed separately from `web` |
+| `engine` | server engine (NestJS / FastAPI) |
+| `worker` | queue processors (BullMQ / arq / Celery) |
+| `agents` | AI agents service (customer-service agent + future agents) |
+| `postgres` | PostgreSQL (backups on in production) |
+| `redis` | Redis |
+Services reference each other through Railway reference variables (`${{postgres.DATABASE_URL}}`) and private networking.
+
+Deploy method (record in ADR-0001):
+- **Default — GitHub Actions `pipeline.yml`:** on push to `develop`/`staging`/`main` it verifies → deploys every
+  service with a Railway project token stored in the matching GitHub Environment → waits until the new commit is live
+  (`/version.json` + `/health/ready`) → runs the post-deploy full test suite. Production waits for required-reviewer
+  approval on the GitHub Environment `production`. Railway autodeploy is **off** for these services.
+- **Alternative:** Railway GitHub integration with "Wait for CI" per service, plus post-deploy tests triggered by GitHub
+  `deployment_status` events. Use only if the project doesn't need post-deploy gating in the same pipeline.
+- Apps must serve `/version.json` (written by the pipeline with the commit SHA) so the pipeline can confirm the deploy.
+
+## Containers / builds
+Multi-stage Dockerfile (or Railpack/Nixpacks when sufficient), non-root, pinned LTS base, same build promoted
+through environments; config only via env vars. Pre-deploy command runs migrations (never from a laptop).
+Healthcheck path `/health/ready` on every HTTP service.
+
+## Mobile apps (Expo)
+Built and shipped by **EAS** from GitHub workflows — see `12-mobile-expo`. Store submission requires human approval.
+
+## Domains
+`dev.<domain>`, `staging.<domain>` (protected, `noindex`), `<domain>` / `www` / `app.`; API at `api.` per environment.
+
+## Monitoring & rollback
+- Sentry per environment, uptime check on `/health/ready`, alerts (email/WhatsApp/Slack), Railway usage alerts.
+- Rollback = redeploy previous successful deployment of the affected services (or revert merge on GitHub), with
+  DB changes compatible with N-1 code. Watch errors 30 minutes after every production deploy.
+
+## Exception: AWS
+Only when a client requires it (compliance, own account, scale). Requires an ADR; use the `deploy-aws` skill.

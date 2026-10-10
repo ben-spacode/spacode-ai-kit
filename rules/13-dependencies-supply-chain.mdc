@@ -1,0 +1,34 @@
+---
+description: Dependency and version vetting — always scan for vulnerabilities before choosing a package or version (Node, Python, Expo, Docker images), pinning, lockfiles, continuous monitoring.
+globs: ["package.json", "pnpm-lock.yaml", "package-lock.json", "pyproject.toml", "requirements*.txt", "uv.lock", "poetry.lock", "Dockerfile*", ".nvmrc"]
+alwaysApply: false
+---
+
+# Dependencies & Supply Chain
+
+## Before adding or upgrading anything — scan first, then choose the version
+1. **Need:** can the platform or an existing dependency do it? Fewer dependencies = smaller attack surface.
+2. **Candidate check:** maintained (recent releases, open issues handled), adoption, license compatible with
+   commercial use (MIT/Apache/BSD ok; GPL/AGPL needs CTO approval), no install scripts doing unexpected things.
+3. **Version selection:** list available versions (`npm view <pkg> versions --json` / `pip index versions <pkg>`),
+   pick the **latest stable** (no alpha/beta/rc unless ADR) and check it for known vulnerabilities:
+   - OSV: `osv-scanner` on the lockfile, or the OSV.dev / GitHub Advisory database for that exact version
+   - Node: `pnpm audit` / `npm audit` after install in a branch
+   - Python: `pip-audit`
+   - Containers: `trivy image <image>` or Docker Scout for base images
+   If the latest has a known high/critical vulnerability, choose the newest version without it and record why.
+4. **Runtime versions:** Node.js **active LTS** (`.nvmrc` + `engines`), Python latest supported stable, Postgres
+   and Redis on supported major versions, Expo SDK latest stable that `expo-doctor` accepts.
+5. Record notable choices (framework majors, new infrastructure libraries) in an ADR.
+
+## Pinning
+- Commit lockfiles; CI installs with `--frozen-lockfile` / `uv sync --frozen`.
+- Exact or caret ranges per ecosystem convention, but the lockfile is the source of truth.
+- Pin Docker base images by version (and digest for production-critical images). Pin GitHub Actions by major version (or SHA for third-party actions).
+
+## Continuous monitoring
+- Dependabot (or Renovate) on `develop`, weekly; security updates immediately.
+- CI fails on high/critical vulnerabilities (partial and full levels). GitHub secret scanning + push protection on.
+- Monthly review in `maintenance-routine`.
+
+Use the `dependency-vetting` skill to run this process and report the choice.

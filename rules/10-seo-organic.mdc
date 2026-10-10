@@ -1,0 +1,51 @@
+---
+description: Organic promotion foundation — technical SEO, sitemap, robots, metadata, structured data, Core Web Vitals, Search Console, analytics and pixel readiness, content at scale with quality gates. Use for any public page, website, landing page, blog or article.
+globs: ["app/(site)/**", "app/sitemap.ts", "app/robots.ts", "content/**", "**/landing/**", "**/blog/**"]
+alwaysApply: false
+---
+
+# Organic Promotion (SEO) — Infrastructure Rules
+
+## Technical foundation (every public project, from the skeleton stage)
+- `app/sitemap.ts` — dynamic sitemap of all indexable URLs (pages, articles, landing pages) with `lastModified`;
+  split into a sitemap index when > 50,000 URLs. Excludes admin, auth, thank-you, filtered/duplicate URLs.
+- `app/robots.ts` — production: allow site, disallow `/admin`, `/api`, private paths, link to sitemap.
+  development/staging: `Disallow: /` **and** `X-Robots-Tag: noindex` header.
+- Metadata API on every page: unique `title` (≤ 60 chars) and `description` (≤ 155), `alternates.canonical`,
+  Open Graph + Twitter cards, OG image (`opengraph-image.tsx`). `metadataBase` set per environment.
+- Structured data (JSON-LD): `Organization`/`LocalBusiness` (site-wide), `WebSite` + `SearchAction`, `BreadcrumbList`,
+  `Article`/`BlogPosting` (articles), `FAQPage` where real FAQs exist, `Product`/`Service`/`SoftwareApplication` as relevant.
+  Validated with Google's Rich Results Test before launch.
+- Clean, readable URLs (Hebrew slugs transliterated or English, decided per project, consistent), one H1 per page,
+  logical heading hierarchy, descriptive internal anchor text, breadcrumbs.
+- `hreflang` + `lang`/`dir` when bilingual. 301 redirects map when replacing an existing site (never lose old URLs).
+- Images: `next/image`, descriptive file names, `alt`, modern formats, explicit sizes.
+
+## "High rate on Google" = measurable quality targets
+- Lighthouse (mobile) ≥ 90 for Performance, Accessibility, Best Practices and SEO on key pages — enforced in CI (Lighthouse CI).
+- Core Web Vitals "Good" in field data: LCP < 2.5s, INP < 200ms, CLS < 0.1.
+- Zero crawl errors, valid sitemap, all key pages indexed in Google Search Console.
+- For paid traffic: landing page relevance and speed to support a high Google Ads Quality Score (see `14-paid-marketing`).
+
+## Measurement & pixels readiness (prepared in code, activated per environment)
+- Google Search Console (domain property, DNS verification) + sitemap submitted; Bing Webmaster Tools.
+- GA4 (via GTM or `@next/third-parties`), with conversion events: `generate_lead`, `contact`, `sign_up`, `purchase`.
+- Meta Pixel + Conversions API, Google Ads conversion tag + enhanced conversions, TikTok/LinkedIn pixels when used.
+- All IDs from env vars; a single `lib/analytics` module emits events to all destinations with shared `event_id`.
+- Consent banner where required; tracking respects consent. Pixels disabled/test-mode outside production.
+
+## Content at scale (target: 1,000+ keyword-driven articles per site, built over time)
+- Start from keyword research → topic clusters (pillar page + cluster articles) → keyword map
+  (`docs/marketing/keyword-map.csv`: keyword, intent, volume, difficulty, cluster, target URL, status).
+- One primary keyword + search intent per article; no two articles targeting the same intent (avoid cannibalization).
+- Articles stored as MDX in `content/` or in the DB/CMS with: title, slug, meta, author, dates, cluster, internal links, schema.
+- **Quality gate for every article** (Google penalizes mass-produced low-value content — "scaled content abuse"):
+  original value, factual accuracy checked, real author/expert byline (E-E-A-T), Hebrew proofread, internal links to
+  pillar + 2–5 related articles, no AI text published without human review.
+- Publishing cadence planned (e.g. batches per week), indexing monitored in Search Console; refresh decaying articles.
+- Programmatic pages (location × service etc.) only when each page has genuinely unique, useful data.
+Implementation: skills `seo-foundation` and `content-engine`.
+
+## Social / organic networks
+- Every page shareable with proper OG; social profiles linked in `Organization.sameAs`.
+- Content repurposing plan: each article → social posts/reels script/WhatsApp status/newsletter snippet.

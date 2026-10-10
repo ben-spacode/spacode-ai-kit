@@ -1,0 +1,46 @@
+---
+description: Security, secrets, authentication/authorization and Israeli privacy-law compliance.
+alwaysApply: true
+---
+
+# Security & Privacy
+
+## Secrets
+- No secrets in code, commits, logs, issues, PR descriptions or AI prompts. `.env` is git-ignored;
+  only `.env.example` (names + dummy values + comment) is committed.
+- Secrets live in: GitHub Environments (CI), Railway variables, or AWS Secrets Manager / SSM.
+- Separate credentials per environment. Production keys are never used in develop/staging.
+- If a secret is ever committed: treat it as leaked — rotate first, then clean history. Tell the human immediately.
+
+## Authentication
+- Passwords hashed with argon2id (or bcrypt cost ≥ 12). Never log or return hashes.
+- Short-lived access tokens (≤ 15 min) + rotating refresh tokens stored server-side / httpOnly cookie.
+- Rate-limit login, OTP, password reset and public forms. Lockout / captcha after repeated failures.
+- 2FA available for admin roles.
+
+## Authorization
+- Default deny. Every route has an explicit guard (auth + role/permission + tenant).
+- RBAC permissions checked in the service layer for sensitive actions, not only in the UI.
+- Object-level checks: verify the resource belongs to the current tenant **and** the user may access it (prevent IDOR).
+
+## Input / output
+- Validate and whitelist all input. Parameterized queries only (ORM) — never string-concatenated SQL.
+- Sanitize any user HTML (e.g. email/landing builders) with an allowlist sanitizer.
+- File uploads: size + MIME allowlist, stored in object storage (S3/R2), never executed, served via signed URLs.
+- Security headers via `helmet`; strict CORS allowlist per environment; CSRF protection for cookie auth.
+
+## Webhooks (Meta, payment gateways, etc.)
+- Verify signatures (e.g. `X-Hub-Signature-256` for Meta) using the raw body before parsing.
+- Respond 200 fast, process asynchronously in a queue, dedupe by event ID.
+
+## Dependencies
+- Dependabot / Renovate enabled. `npm audit --audit-level=high` in CI. No abandoned packages for security-critical paths.
+
+## Privacy — Israeli Protection of Privacy Law (incl. Amendment 13) & GDPR where relevant
+- Collect the minimum personal data needed; document purpose for each PII field.
+- PII is never written to logs, analytics events, error trackers or AI prompts unless required and masked.
+- Support data export and deletion per data subject (per tenant).
+- Access to production data is logged (audit log table: who, what, when, tenant).
+- Marketing messages (WhatsApp/SMS/email) require recorded opt-in consent and a working opt-out
+  (Israeli Communications Law "spam" section 30A). Store consent source + timestamp.
+- Note: this is engineering guidance, not legal advice — flag compliance questions to the CTO.

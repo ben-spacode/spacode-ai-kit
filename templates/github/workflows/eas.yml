@@ -1,0 +1,35 @@
+name: Mobile (EAS)
+
+# Only for projects with apps/mobile. Builds are triggered from GitHub, never from a laptop.
+on:
+  push:
+    branches: [develop, staging, main]
+    paths: ["apps/mobile/**", "packages/shared/**"]
+  workflow_dispatch:
+
+jobs:
+  eas:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || (github.ref_name == 'staging' && 'staging' || 'development') }}
+    defaults:
+      run: { working-directory: apps/mobile }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: pnpm install --frozen-lockfile
+      - run: npx expo-doctor
+      - name: develop → preview build (internal)
+        if: github.ref_name == 'develop'
+        run: eas build --profile preview --platform all --non-interactive --no-wait
+      - name: staging → preview build for TestFlight / Play internal
+        if: github.ref_name == 'staging'
+        run: eas build --profile preview --platform all --non-interactive --no-wait
+      - name: main → production build + store submit (environment approval required)
+        if: github.ref_name == 'main'
+        run: eas build --profile production --platform all --non-interactive --auto-submit --no-wait

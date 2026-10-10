@@ -1,0 +1,34 @@
+---
+description: Landing pages and business branding — conversion structure, brand identity on the page, lead capture into the CRM and WhatsApp, organic + social readiness. Use when building or changing landing pages or brand elements.
+globs: ["app/(site)/lp/**", "**/landing/**", "docs/brand/**"]
+alwaysApply: false
+---
+
+# Landing Pages & Branding
+
+Landing pages are promoted on **Google and social networks** — both organically and paid — so every page
+follows `10-seo-organic` (organic) and `14-paid-marketing` (paid) in addition to this rule.
+
+## Branding first
+- Each project has a brand guide in `docs/brand/BRAND-GUIDE.md` (skill: `brand-identity`): positioning, value
+  proposition, audience, tone of voice (Hebrew), messaging pillars, logo usage, color palette with accessible
+  contrast, typography, imagery style, UI tokens.
+- Design tokens in code come from the brand guide + Stitch design; pages never introduce ad-hoc colors/fonts.
+
+## Page structure (one goal per page)
+Hero (benefit-led headline + subheadline + one primary CTA + visual) → trust strip (logos, numbers, reviews —
+real only) → problem → solution/how it works → benefits → social proof/case study → offer/pricing → FAQ
+(objections; `FAQPage` schema) → final CTA → footer with business details, privacy policy, accessibility statement.
+Internet-marketing elements on the page itself: clear offer, urgency only if real, WhatsApp click-to-chat, lead
+magnet where relevant, exit-intent/secondary CTA used sparingly, sticky mobile CTA.
+
+## Lead capture
+- Minimal fields (name + phone; email optional), Israeli phone validation → E.164, consent checkbox (unchecked
+  by default) for marketing, honeypot + rate limit.
+- Lead → CRM via API/queue with UTM + click IDs + landing slug + consent, deduplicated by phone, then the WhatsApp
+  lead engine (welcome message, assignment by group/source, warming).
+- Thank-you state with next step; fires `Lead` events (Pixel + CAPI + GA4 + Google Ads) with shared `event_id`.
+
+## Quality bar
+Lighthouse mobile ≥ 90 (all four categories), message match with the ad, mobile-first, Hebrew copy proofread,
+accessible, A/B tests one variable at a time with results logged in `docs/marketing/experiments.md`.

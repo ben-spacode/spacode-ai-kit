@@ -1,0 +1,13 @@
+# Keep secrets and bulky output out of AI context
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.tfstate*
+node_modules/
+dist/
+.next/
+coverage/
+playwright-report/
+**/fixtures/real-data/**

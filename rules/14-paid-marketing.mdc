@@ -1,0 +1,36 @@
+---
+description: Paid marketing readiness — tracking infrastructure, campaign knowledge base, executable action plan, and the paid-ads appendix file for each project (Meta, Google, TikTok, LinkedIn). Use when preparing campaigns, ads, conversion tracking or the marketing appendix.
+globs: ["docs/marketing/**"]
+alwaysApply: false
+---
+
+# Paid Marketing — System Readiness & Appendix
+
+Every public-facing project ships with paid-marketing readiness in three layers. The output is a project
+appendix file: `docs/marketing/PAID-ADS-APPENDIX.md` (skill: `paid-ads-appendix`).
+
+## 1. Infrastructure (in the system)
+- Conversion tracking: Meta Pixel + **Conversions API** (deduplicated by `event_id`), Google Ads conversion tag +
+  **enhanced conversions**, GA4 key events, offline conversions from CRM lead status (qualified, won) back to Meta/Google.
+- UTM / click-id capture (`gclid`, `gbraid`, `wbraid`, `fbclid`, `ttclid`) stored with every lead.
+- Dedicated landing pages per campaign/audience (`/lp/[slug]`), fast and message-matched to the ad.
+- Product/service feed (Google Merchant / Meta catalog) when e-commerce.
+- Audiences prepared: website visitors, lead stages, customers (hashed lists) for retargeting and lookalikes — with consent.
+
+## 2. Knowledge (in the appendix)
+Business goal and KPI targets (CPL, CPA, ROAS, lead-to-customer rate), personas, offer, positioning and
+messaging, competitor ad research, channel strategy (Meta, Google Search/PMax, YouTube, TikTok, LinkedIn —
+per audience), budget split and pacing, creative guidelines per platform (sizes, length, hooks), compliance
+notes (platform ad policies, special ad categories, Israeli consumer and spam laws).
+
+## 3. Actions (executable plan in the appendix)
+Account structure (campaigns → ad sets/ad groups → ads), naming convention, targeting, keywords + negatives,
+bidding strategy per learning phase, ad copy (Hebrew, ≥ 3 variants per element), creatives brief, tracking
+QA checklist, launch checklist, test plan (one variable at a time), weekly optimization routine, reporting
+template. Every action states: platform, exact setting, owner, and whether it needs human approval.
+
+## Rules
+- Claims in ads must be true and provable; no fabricated testimonials, numbers or urgency.
+- AI and Claude **prepare** campaigns and copy; launching, budget changes and payment actions are done or approved by a human.
+- Track ad quality signals: Google Ads Quality Score (expected CTR, ad relevance, landing page experience) and Meta
+  quality/engagement/conversion rankings — improve the landing page, not just the bid.
