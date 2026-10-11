@@ -44,7 +44,7 @@ alwaysApply: false
   pillar + 2–5 related articles, no AI text published without human review.
 - Publishing cadence planned (e.g. batches per week), indexing monitored in Search Console; refresh decaying articles.
 - Programmatic pages (location × service etc.) only when each page has genuinely unique, useful data.
-Implementation: skills `seo-foundation` and `content-engine`.
+Implementation: skills `site-architecture`, `seo-foundation`, `content-engine`, `competitor-content-gap`, `gsc-ctr-optimizer` — orchestrated by `growth-engine`.
 
 ## Social / organic networks
 - Every page shareable with proper OG; social profiles linked in `Organization.sameAs`.

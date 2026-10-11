@@ -17,6 +17,7 @@ by bulk-publishing raw AI text. Tell the user this when they ask for large batch
 - Write `docs/marketing/keyword-map.csv`: `keyword,intent,volume,difficulty,cluster,pillar,target_slug,priority,status`.
 
 ## 2. Architecture
+Align clusters with the page hierarchy and internal-linking plan from `site-architecture`. For priority keywords where a competitor dominates, run `competitor-content-gap` first.
 - Pillar page per cluster (comprehensive guide) + 10–40 cluster articles linking up to the pillar and sideways.
 - Plan the 1,000 as: N clusters × M articles, prioritized by business value × opportunity. Record in `docs/marketing/CONTENT-PLAN.md` with batches and cadence.
 
@@ -24,7 +25,7 @@ by bulk-publishing raw AI text. Tell the user this when they ask for large batch
 Primary keyword + intent, secondary keywords, target reader, angle/unique value (data, experience, examples),
 outline H2/H3, questions to answer, internal links (pillar + 2–5), CTA, schema type, sources to verify.
 
-## 4. Draft → quality gate (all must pass before publish)
+## 4. Draft (with `copywriting` — no AI tells) → quality gate (all must pass before publish)
 - [ ] Answers the intent better than current top results; contains original value (example, data, expert insight, local context)
 - [ ] Facts verified; sources cited where claims are made
 - [ ] Natural Hebrew, proofread; no keyword stuffing
@@ -40,5 +41,5 @@ outline H2/H3, questions to answer, internal links (pillar + 2–5), CTA, schema
 - Scheduled publishing in batches; track indexing (Search Console) and rankings per keyword.
 
 ## 6. Refresh & measure
-Monthly: articles losing clicks → refresh; cannibalization check; merge thin articles; update keyword map statuses.
+Monthly: run `gsc-ctr-optimizer` for high-impression/low-CTR pages; articles losing clicks → refresh; cannibalization check; merge thin articles; update keyword map statuses.
 Report: indexed pages, impressions, clicks, top movers, leads from content.

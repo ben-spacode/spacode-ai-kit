@@ -1,10 +1,11 @@
 name: Full Pipeline
 
 # Full test level + deploy, for develop / staging / main.
-# GitHub is the only path to Railway: this workflow deploys after verification.
+# GitHub is the only path to the infrastructure: this workflow deploys after verification.
+# Hosting is chosen by the GitHub variable HOSTING: "railway" (default) or "aws" (ECS Fargate).
 #   develop → Railway "development" · staging and hotfix/* → "staging" · main → "production" (requires approval
 #   configured on the GitHub Environment "production": Settings → Environments → Required reviewers).
-# Railway autodeploy must be OFF for services deployed by this workflow.
+# Railway: autodeploy must be OFF for services deployed by this workflow. AWS: no other deploy path (no console/CLI deploys).
 on:
   push:
     branches: [develop, staging, main, "hotfix/**"]   # hotfix branches are verified on the staging environment
@@ -59,11 +60,20 @@ jobs:
     needs: full-verify
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name == 'main' && 'production' || ((github.ref_name == 'staging' || startsWith(github.ref_name, 'hotfix/')) && 'staging' || 'development') }}
+    permissions:
+      contents: read
+      id-token: write          # AWS OIDC (no long-lived keys)
     steps:
       - uses: actions/checkout@v4
       - name: Stamp version
-        run: echo "{\"commit\":\"${{ github.sha }}\",\"ref\":\"${{ github.ref_name }}\"}" > version.json
+        run: |
+          v="{\"commit\":\"${{ github.sha }}\",\"ref\":\"${{ github.ref_name }}\"}"
+          echo "$v" > version.json
+          [ -d apps/web/public ] && echo "$v" > apps/web/public/version.json || true
+
+      # ───────── Railway (vars.HOSTING = railway, default) ─────────
       - name: Deploy services to Railway
+        if: vars.HOSTING != 'aws'
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}   # project token scoped to this environment
         run: |
@@ -72,6 +82,82 @@ jobs:
             echo "▶ deploying $svc to $ENV_NAME"
             railway up --ci --service "$svc" --environment "$ENV_NAME"
           done
+
+      # ───────── AWS ECS Fargate (vars.HOSTING = aws) ─────────
+      # Environment vars: AWS_REGION, AWS_ROLE_ARN, ECS_CLUSTER, ECS_SERVICE_PREFIX (e.g. acme-crm-staging),
+      #   ECS_SERVICES (e.g. "web engine worker agents"), ECR_REPO_PREFIX (e.g. acme-crm),
+      #   ECS_MIGRATION_SERVICE (e.g. engine, optional), MIGRATION_COMMAND (JSON array, e.g. ["pnpm","db:migrate:deploy"])
+      # Conventions (created by IaC, see deploy-aws skill): ECS service "<prefix>-<svc>", container name "<svc>",
+      #   ECR repo "<repo-prefix>-<svc>", Dockerfile at apps/<svc>/Dockerfile; "worker" reuses the engine image.
+      - name: Configure AWS credentials (OIDC)
+        if: vars.HOSTING == 'aws'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Login to Amazon ECR
+        if: vars.HOSTING == 'aws'
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build, push, migrate and deploy to ECS
+        if: vars.HOSTING == 'aws'
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          CLUSTER: ${{ vars.ECS_CLUSTER }}
+          SP: ${{ vars.ECS_SERVICE_PREFIX }}
+          SERVICES: ${{ vars.ECS_SERVICES }}
+          REPO_PREFIX: ${{ vars.ECR_REPO_PREFIX }}
+          MIG: ${{ vars.ECS_MIGRATION_SERVICE }}
+          MIG_CMD: ${{ vars.MIGRATION_COMMAND }}
+          TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          src_of() { [ "$1" = "worker" ] && echo engine || echo "$1"; }
+          image_of() { echo "$REGISTRY/$REPO_PREFIX-$(src_of "$1"):$TAG"; }
+
+          # 1. Build & push each image once per commit (skip if the tag already exists in ECR)
+          for svc in $SERVICES; do
+            src="$(src_of "$svc")"
+            if aws ecr describe-images --repository-name "$REPO_PREFIX-$src" --image-ids imageTag="$TAG" >/dev/null 2>&1; then
+              echo "• image $src:$TAG exists"; continue; fi
+            docker build -f "apps/$src/Dockerfile" -t "$(image_of "$src")" .
+            docker push "$(image_of "$src")"
+          done
+
+          # Register a new task-definition revision of a service with the new image
+          register() {
+            local svc="$1" td
+            td=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SP-$svc" --query 'services[0].taskDefinition' --output text)
+            aws ecs describe-task-definition --task-definition "$td" --query taskDefinition \
+              | jq --arg IMG "$(image_of "$svc")" --arg C "$svc" \
+                'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)
+                 | .containerDefinitions |= map(if .name == $C then .image = $IMG else . end)' > "td-$svc.json"
+            aws ecs register-task-definition --cli-input-json "file://td-$svc.json" --query taskDefinition.taskDefinitionArn --output text
+          }
+
+          # 2. Migrations as a one-off ECS task (never from a laptop)
+          if [ -n "$MIG" ]; then
+            arn=$(register "$MIG")
+            net=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SP-$MIG" --query 'services[0].networkConfiguration' --output json)
+            task=$(aws ecs run-task --cluster "$CLUSTER" --launch-type FARGATE --task-definition "$arn" \
+              --network-configuration "$net" \
+              --overrides "{\"containerOverrides\":[{\"name\":\"$MIG\",\"command\":$MIG_CMD}]}" \
+              --query 'tasks[0].taskArn' --output text)
+            echo "▶ migration task $task"
+            aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$task"
+            code=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$task" --query "tasks[0].containers[?name=='$MIG'].exitCode | [0]" --output text)
+            [ "$code" = "0" ] || { echo "::error::Migration failed (exit $code)"; exit 1; }
+          fi
+
+          # 3. Roll out every service and wait until stable (circuit breaker with rollback is set in IaC)
+          names=""
+          for svc in $SERVICES; do
+            arn=$(register "$svc")
+            aws ecs update-service --cluster "$CLUSTER" --service "$SP-$svc" --task-definition "$arn" >/dev/null
+            names="$names $SP-$svc"; echo "▶ deploying $SP-$svc → $arn"
+          done
+          aws ecs wait services-stable --cluster "$CLUSTER" --services $names
+
       - name: Wait for new version to be live
         run: |
           for i in $(seq 1 60); do

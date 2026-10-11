@@ -16,7 +16,7 @@ living checklist in `docs/PROJECT-STATUS.md` (copy the phase list below, tick it
 5. AI: which customer-service scope; provider preference (Claude API / OpenAI API).
 6. Marketing: organic goals (keywords, regions), social networks, paid channels and budget, existing brand assets.
 7. Design: reference site(s) for Stitch; brand assets; who approves design.
-8. Data & privacy: personal data, retention, ownership.
+8. Data & privacy: personal data, retention, ownership. Hosting constraints (budget, compliance, client-owned AWS account?) → Railway or AWS.
 9. Timeline, budget, maintenance agreement.
 10. Success metrics at 3 and 12 months; is an investor deck / business reporting needed?
 
@@ -26,16 +26,18 @@ Skill `mvp-poc` → `docs/product/POC.md`: hypothesis, web test (smoke landing /
 ## Phase 2 — Define
 - `prd-writer` → `docs/prd/PRD-001-<slug>.md`
 - `erd-designer` → `docs/erd/ERD.md`
-- `adr-writer` → ADR-0001 (stack, Railway services, deploy method, AI provider, engine language)
+- `adr-writer` → ADR-0001 (stack, hosting Railway or AWS, services, AI provider, engine language)
 - `business-model` → current model `docs/business/BUSINESS-MODEL.md`
 - `mvp-poc` → MVP scope `docs/product/MVP.md`
 - `brand-identity` → `docs/brand/BRAND-GUIDE.md`
+- `site-architecture` → page hierarchy, navigation, URLs (public sites)
+- Marketing order for the whole project: follow `growth-engine`
 - `dependency-vetting` → framework/runtime versions recorded in the ADR
 
 ## Phase 3 — Repository & infrastructure (prepare; human executes)
 - [ ] Private GitHub repo from template; `install-spacode-kit.sh` applied; `setup-github.sh` run (branches, protection, environments).
 - [ ] Local machine: clone and keep only `develop` (`git switch develop`; delete local `main` if created by clone).
-- [ ] Railway project with environments development / staging / production and services per component (`deploy-railway`).
+- [ ] Hosting per ADR-0001 — **Railway:** project with 3 environments and a service per component (`deploy-railway`); **AWS:** IaC for 3 environments, ECS service per component, RDS, ElastiCache, OIDC role per environment (`deploy-aws`). Set GitHub variable `HOSTING`.
 - [ ] Domains + DNS; dev/staging protected + noindex.
 - [ ] `.cursor/mcp.json` with Stitch; `STITCH_API_KEY` in the developer environment.
 - [ ] Sentry, uptime monitoring, Search Console, GA4, Meta Business assets (Pixel, WABA), Google Ads account.
@@ -60,7 +62,7 @@ Every feature: PR → develop (partial) → promote with `release-promotion` (fu
 
 ## Phase 8 — After completion
 `business-model` (future forecast), `investor-deck`, `periodic-reports` (quarterly/annual infrastructure),
-`maintenance-routine` monthly.
+`maintenance-routine` monthly, and the optimization loop of `growth-engine` (`gsc-ctr-optimizer` monthly, `competitor-content-gap` quarterly).
 
 ## Output each time
 Short Hebrew summary: phase, decisions, open questions, and the checklist of what the human needs to do next.

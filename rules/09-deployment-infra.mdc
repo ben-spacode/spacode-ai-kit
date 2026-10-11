@@ -1,49 +1,53 @@
 ---
-description: Deployment on Railway driven only by GitHub — one Railway service per component, three environments, CI-gated deploys, mobile releases through EAS, monitoring and rollback.
-globs: ["Dockerfile*", "docker-compose*.yml", ".github/workflows/**", "railway.*", "**/railway.json", "eas.json", "infra/**"]
+description: Deployment driven only by GitHub, to Railway (default) or AWS (by ADR) — one service per component, three environments, CI-gated deploys, IaC for AWS, mobile releases through EAS, monitoring and rollback.
+globs: ["Dockerfile*", "docker-compose*.yml", ".github/workflows/**", "railway.*", "**/railway.json", "eas.json", "infra/**", "**/*.tf"]
 alwaysApply: false
 ---
 
-# Deployment & Infrastructure — Railway via GitHub
+# Deployment & Infrastructure — GitHub → Railway or AWS
 
-## Principle
-**GitHub first, Railway second.** Code reaches Railway only by merging on GitHub; the merge triggers the
-deploy. Nobody deploys from a laptop (`railway up` locally is forbidden), and nothing is changed in Railway
-that isn't reflected in the repo (config-as-code in `railway.json` per service where possible).
+## Principle (both platforms)
+**GitHub first, infrastructure second.** Code and infrastructure reach any environment only by merging on GitHub;
+the merge triggers the deploy. Nobody deploys from a laptop or a cloud console. The chosen platform is recorded in
+ADR-0001 and set in the GitHub variable `HOSTING` (`railway` | `aws`), which `pipeline.yml` reads.
 
-## Railway layout
-One Railway **project** per product, three **environments** mapped to branches:
-| Railway environment | Branch | Deploy trigger |
+## Environments (both platforms)
+| Environment | Branch | Deploy trigger |
 |---|---|---|
-| `development` | `develop` | merge to `develop`, after CI green |
-| `staging` | `staging` | merge to `staging`, after CI green |
-| `production` | `main` | merge to `main`, after CI green **and** GitHub Environment approval |
+| `development` | `develop` | merge to `develop`, after verification |
+| `staging` | `staging` (and `hotfix/*` for verification) | merge to `staging`, after verification |
+| `production` | `main` | merge to `main`, after verification **and** GitHub Environment approval |
 
-**One service per component** in every environment:
-| Service | Content |
-|---|---|
-| `web` | Next.js — website + admin system |
-| `landing` | landing page(s), only if deployed separately from `web` |
-| `engine` | server engine (NestJS / FastAPI) |
-| `worker` | queue processors (BullMQ / arq / Celery) |
-| `agents` | AI agents service (customer-service agent + future agents) |
-| `postgres` | PostgreSQL (backups on in production) |
-| `redis` | Redis |
-Services reference each other through Railway reference variables (`${{postgres.DATABASE_URL}}`) and private networking.
+## One service per component
+| Component | Railway | AWS |
+|---|---|---|
+| web (site + admin) | service `web` | ECS Fargate service `<prefix>-web` behind ALB |
+| landing (if separate) | service `landing` | ECS service `<prefix>-landing` (or S3 + CloudFront if static) |
+| server engine | service `engine` | ECS service `<prefix>-engine` |
+| worker | service `worker` | ECS service `<prefix>-worker` (same image as engine, different command) |
+| agents | service `agents` | ECS service `<prefix>-agents` |
+| PostgreSQL | Railway Postgres | RDS PostgreSQL (Multi-AZ in production) |
+| Redis | Railway Redis | ElastiCache Redis / Valkey |
 
-Deploy method (record in ADR-0001):
-- **Default — GitHub Actions `pipeline.yml`:** on push to `develop`/`staging`/`main` it verifies → deploys every
-  service with a Railway project token stored in the matching GitHub Environment → waits until the new commit is live
-  (`/version.json` + `/health/ready`) → runs the post-deploy full test suite. Production waits for required-reviewer
-  approval on the GitHub Environment `production`. Railway autodeploy is **off** for these services.
-- **Alternative:** Railway GitHub integration with "Wait for CI" per service, plus post-deploy tests triggered by GitHub
-  `deployment_status` events. Use only if the project doesn't need post-deploy gating in the same pipeline.
-- Apps must serve `/version.json` (written by the pipeline with the commit SHA) so the pipeline can confirm the deploy.
+## Railway (default)
+- One project per product; environments as above. `pipeline.yml` deploys with a Railway project token per GitHub Environment; Railway autodeploy **off**.
+- Reference variables between services, private networking, pre-deploy migrations, `railway.json` per service when used. Skill: `deploy-railway`.
 
-## Containers / builds
-Multi-stage Dockerfile (or Railpack/Nixpacks when sufficient), non-root, pinned LTS base, same build promoted
-through environments; config only via env vars. Pre-deploy command runs migrations (never from a laptop).
-Healthcheck path `/health/ready` on every HTTP service.
+## AWS (when chosen)
+- **Infrastructure as Code only** (Terraform default, or CDK) in `infra/`, one stack/workspace per environment. Changes go
+  through PRs: `infra-aws.yml` runs `terraform plan` on the PR and `apply` after merge, with production approval.
+- `pipeline.yml` (HOSTING=aws): GitHub OIDC role per environment (no access keys) → build and push images to ECR (tag = commit SHA)
+  → migrations as a one-off ECS task → new task-definition revisions → `update-service` → wait until stable.
+- Naming conventions the pipeline relies on: ECS service `<ECS_SERVICE_PREFIX>-<svc>`, container name `<svc>`, ECR repo
+  `<ECR_REPO_PREFIX>-<svc>`, Dockerfile `apps/<svc>/Dockerfile`.
+- ECS deployment circuit breaker with automatic rollback; secrets from Secrets Manager/SSM injected into task definitions.
+- Region `il-central-1` (Tel Aviv) when data residency/latency matters. Tags `client`, `project`, `env`, `owner=spacode`. AWS Budgets alerts.
+- Skill: `deploy-aws`.
+
+## Containers / builds (both)
+Multi-stage Dockerfile, non-root, pinned LTS base, configuration only via env vars, healthcheck `/health/ready` on every
+HTTP service. Apps serve `/version.json` (written by the pipeline with the commit SHA) so the pipeline can confirm the new
+version is live before running post-deploy tests.
 
 ## Mobile apps (Expo)
 Built and shipped by **EAS** from GitHub workflows — see `12-mobile-expo`. Store submission requires human approval.
@@ -52,9 +56,7 @@ Built and shipped by **EAS** from GitHub workflows — see `12-mobile-expo`. Sto
 `dev.<domain>`, `staging.<domain>` (protected, `noindex`), `<domain>` / `www` / `app.`; API at `api.` per environment.
 
 ## Monitoring & rollback
-- Sentry per environment, uptime check on `/health/ready`, alerts (email/WhatsApp/Slack), Railway usage alerts.
-- Rollback = redeploy previous successful deployment of the affected services (or revert merge on GitHub), with
-  DB changes compatible with N-1 code. Watch errors 30 minutes after every production deploy.
-
-## Exception: AWS
-Only when a client requires it (compliance, own account, scale). Requires an ADR; use the `deploy-aws` skill.
+- Sentry per environment, uptime checks on `/health/ready`, alerts; Railway usage alerts or CloudWatch alarms + AWS Budgets.
+- Rollback = revert the merge on GitHub (preferred). Emergency: redeploy the previous Railway deployment / previous ECS
+  task-definition revision, then reconcile Git the same day. DB changes must stay compatible with N-1 code.
+- Watch errors for 30 minutes after every production deploy.

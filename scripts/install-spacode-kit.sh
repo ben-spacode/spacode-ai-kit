@@ -2,28 +2,33 @@
 # Spacode AI Kit — install rules, skills, docs, tests, workflows and MCP config into a project.
 #
 # Usage:
-#   ./scripts/install-spacode-kit.sh <target-project-dir> [--name "Project"] [--client "Client"] [--owner github-user] [--mobile] [--force]
+#   ./scripts/install-spacode-kit.sh <target-project-dir> [--name "Project"] [--client "Client"] [--owner github-user]
+#                                    [--hosting railway|aws] [--mobile] [--force]
 #
+#   --hosting  railway (default) or aws — aws also installs the Terraform infra workflow
 #   --mobile   also install the EAS workflow and Expo templates (projects with an Expo app)
 #   --force    overwrite project files that already exist (rules and skills are always refreshed)
 set -euo pipefail
 
 KIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET="${1:-}"
-[[ -z "$TARGET" || "$TARGET" == --* ]] && { echo "Usage: $0 <target-dir> [--name N] [--client C] [--owner O] [--mobile] [--force]"; exit 1; }
+[[ -z "$TARGET" || "$TARGET" == --* ]] && { echo "Usage: $0 <target-dir> [--name N] [--client C] [--owner O] [--hosting railway|aws] [--mobile] [--force]"; exit 1; }
 shift
 
-PROJECT_NAME="" CLIENT_NAME="" GITHUB_OWNER="" FORCE=0 MOBILE=0
+PROJECT_NAME="" CLIENT_NAME="" GITHUB_OWNER="" FORCE=0 MOBILE=0 HOSTING="railway"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --name)   PROJECT_NAME="$2"; shift 2 ;;
     --client) CLIENT_NAME="$2"; shift 2 ;;
     --owner)  GITHUB_OWNER="$2"; shift 2 ;;
     --mobile) MOBILE=1; shift ;;
+    --hosting) HOSTING="$2"; shift 2 ;;
     --force)  FORCE=1; shift ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
+
+[[ "$HOSTING" == "railway" || "$HOSTING" == "aws" ]] || { echo "--hosting must be railway or aws"; exit 1; }
 
 mkdir -p "$TARGET"
 TARGET="$(cd "$TARGET" && pwd)"
@@ -41,7 +46,7 @@ copy_file() { # src dst
   fi
 }
 
-echo "▶ Installing Spacode AI Kit v$KIT_VERSION into $TARGET"
+echo "▶ Installing Spacode AI Kit v$KIT_VERSION into $TARGET (hosting: $HOSTING)"
 
 echo "• Cursor rules → .cursor/rules/ (refreshed)"
 mkdir -p "$TARGET/.cursor/rules"
@@ -67,6 +72,7 @@ copy_file "$T/CHANGELOG.md" "$TARGET/CHANGELOG.md"
 
 echo "• Docs → docs/"
 mkdir -p "$TARGET"/docs/{prd,erd,adr,runbooks,postmortems,handoff,maintenance,design,brand,testing,marketing,product,business/reports,templates}
+[[ "$HOSTING" == "aws" ]] && mkdir -p "$TARGET"/infra/{modules,envs/development,envs/staging,envs/production} && touch "$TARGET/infra/modules/.gitkeep"
 for d in prd postmortems handoff maintenance; do touch "$TARGET/docs/$d/.gitkeep"; done
 # Reference templates (always available for new documents)
 for f in "$T"/docs/*; do copy_file "$f" "$TARGET/docs/templates/$(basename "$f")"; done
@@ -97,6 +103,11 @@ echo "• GitHub → .github/"
 ( cd "$T/github" && find . -type f ) | while read -r f; do
   rel="${f#./}"
   [[ "$rel" == "workflows/eas.yml" && $MOBILE -eq 0 ]] && continue
+  if [[ "$rel" == workflows-aws/* ]]; then
+    [[ "$HOSTING" == "aws" ]] || continue
+    rel="workflows/${rel#workflows-aws/}"
+    copy_file "$T/github/workflows-aws/${rel#workflows/}" "$TARGET/.github/$rel"; continue
+  fi
   copy_file "$T/github/$rel" "$TARGET/.github/$rel"
 done
 
@@ -123,6 +134,7 @@ while IFS= read -r -d '' f; do
   sub "$f" PROJECT_NAME "$PROJECT_NAME"
   sub "$f" CLIENT_NAME  "$CLIENT_NAME"
   sub "$f" GITHUB_OWNER "$GITHUB_OWNER"
+  sub "$f" HOSTING "$([[ "$HOSTING" == aws ]] && echo "AWS (ECS Fargate, RDS, ElastiCache; Terraform)" || echo "Railway")"
 done < <(find "$TARGET/AGENTS.md" "$TARGET/.github/CODEOWNERS" "$TARGET/docs" -type f \( -name '*.md' -o -name 'CODEOWNERS' \) -not -path '*/docs/templates/*' -print0 2>/dev/null)
 
 echo "$KIT_VERSION" > "$TARGET/.cursor/.spacode-kit-version"
@@ -133,7 +145,7 @@ cat <<EOF
   1. Fill the remaining {{placeholders}} in AGENTS.md (description, project type, domains, AI provider).
   2. Set STITCH_API_KEY in your OS/shell environment (not in the repo) and check Cursor Settings → MCP shows "stitch".
   3. git add -A && git commit -m "chore: apply spacode ai kit v$KIT_VERSION"
-  4. Run scripts/setup-github.sh <owner/repo> from the kit (branches, required checks, environments).
+  4. Run scripts/setup-github.sh <owner/repo> --hosting $HOSTING from the kit (branches, required checks, environments).
   5. Locally keep only develop:  git switch develop && git branch -D main
   6. In Cursor / Claude:  "run the project-kickoff skill"
 EOF

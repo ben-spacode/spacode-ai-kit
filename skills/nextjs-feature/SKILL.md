@@ -27,5 +27,11 @@ description: Build a Next.js frontend feature/screen to Spacode standards — He
 - [ ] Works at 375px; tables become cards or scroll horizontally inside a container
 - [ ] `data-testid` on key elements for Playwright
 
+## Feel
+Interaction and motion per `apple-design`; on mobile web apply `mobile-native` fixes (100dvh, tap highlight, safe areas, input zoom).
+
+## Visual check
+Run the `frontend-design-partner` screenshot loop (375/768/1440) and fix issues before review.
+
 ## Done
 Add/adjust a Playwright test for the main flow. Report files changed and screenshots if possible.

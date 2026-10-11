@@ -1,0 +1,15 @@
+{
+  "_comment": "External skills vendored into skills/. Update with scripts/update-vendored-skills.sh. Each gets vendor/adapters/<name>.md inserted after its frontmatter.",
+  "sources": {
+    "marketingskills": { "repo": "https://github.com/coreyhaines31/marketingskills.git", "license": "MIT", "copyright": "Copyright (c) 2025 Corey Haines" },
+    "emilkowalski": { "repo": "https://github.com/emilkowalski/skills.git", "license": "MIT", "copyright": "Copyright (c) 2026 Emil Kowalski" }
+  },
+  "skills": [
+    { "name": "copywriting",          "source": "marketingskills", "path": "skills/copywriting",          "exclude": ["evals"] },
+    { "name": "site-architecture",    "source": "marketingskills", "path": "skills/site-architecture",    "exclude": ["evals"] },
+    { "name": "marketing-psychology", "source": "marketingskills", "path": "skills/marketing-psychology", "exclude": ["evals"] },
+    { "name": "apple-design",         "source": "emilkowalski",    "path": "skills/apple-design",         "exclude": [] },
+    { "name": "animate-expo",         "source": "emilkowalski",    "path": "skills/animate-expo",         "exclude": [] },
+    { "name": "mobile-native",        "source": "emilkowalski",    "path": "skills/mobile-native",        "exclude": [] }
+  ]
+}

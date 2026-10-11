@@ -22,6 +22,9 @@ real only) → problem → solution/how it works → benefits → social proof/c
 Internet-marketing elements on the page itself: clear offer, urgency only if real, WhatsApp click-to-chat, lead
 magnet where relevant, exit-intent/secondary CTA used sparingly, sticky mobile CTA.
 
+## Copy, persuasion & feel
+Copy via `copywriting` (no AI tells), persuasion via `marketing-psychology` (ethical — no dark patterns), motion and interaction via `apple-design` / `mobile-native`.
+
 ## Lead capture
 - Minimal fields (name + phone; email optional), Israeli phone validation → E.164, consent checkbox (unchecked
   by default) for marketing, honeypot + rate limit.

@@ -47,5 +47,8 @@ accessibility statement page. Automated axe checks in the full test suite.
 - Every data view: loading, empty, error, no-permission states. Mobile-first; test at 375px.
 - `next/image`, `next/font`, dynamic import for heavy client components. Budgets: LCP < 2.5s, INP < 200ms, CLS < 0.1.
 
+## Visual quality loop
+Before calling UI work done, run the `frontend-design-partner` screenshot loop (375/768/1440, RTL) and its checklist.
+
 ## Security
 No secrets in `NEXT_PUBLIC_*`. Auth tokens in httpOnly Secure SameSite cookies. CSP and security headers via `next.config` / middleware.

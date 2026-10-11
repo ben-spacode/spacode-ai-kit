@@ -13,11 +13,12 @@ Offer, audience/persona and pains, single conversion goal, main objection, real 
 If no brand guide → run `brand-identity` first (at least a light version).
 
 ## 2. Messaging
+Use `copywriting` for the copy and `marketing-psychology` for the persuasion levers (ethically); page placement in the site per `site-architecture`.
 3 headline options + subheadline (benefit-led, specific), value props as outcomes, objection-handling FAQ, CTA
 variants (form + WhatsApp). Organic: primary keyword + intent for the page. Ad copy is prepared in the paid appendix.
 
 ## 3. Build (Next.js `app/(site)/lp/[slug]` or a separate `landing` service)
-Sections per rule 15; design from Stitch if available; tokens from the brand guide. Metadata + canonical + OG +
+Sections per rule 15; design from Stitch if available, motion/interaction per `apple-design` and `mobile-native`; tokens from the brand guide. Metadata + canonical + OG +
 `FAQPage`/`Service` schema; in `sitemap.ts` unless it's a paid-only variant (then `noindex` + canonical to the main page).
 Form → `/api/leads` → CRM (UTM, click IDs, slug, consent) → WhatsApp lead engine. Thank-you state fires `Lead` with shared `event_id`.
 

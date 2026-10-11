@@ -1,0 +1,1 @@
+Vendored from https://github.com/emilkowalski/skills.git (skills/mobile-native) at commit e8a175d. License: MIT. Spacode adapter: vendor/adapters/mobile-native.md

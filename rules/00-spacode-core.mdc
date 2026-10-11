@@ -19,8 +19,9 @@ security, testing, SEO, marketing, design, product and business — not only dev
 | Mobile app | **Expo** (React Native, TS) built and shipped with **EAS Build/Submit** to Google Play and App Store | **Node.js** (NestJS) or **Python** (FastAPI) | PostgreSQL, Redis |
 | AI agents | — | Dedicated agents service (Node.js or Python), provider **Claude API or OpenAI API** chosen per project via config | PostgreSQL (+ pgvector), Redis |
 
-Hosting: **Railway**, deployed only through GitHub (see `09-deployment-infra`). Every component is its own
-Railway service: site/admin, landing page, server engine, worker, agents service, PostgreSQL, Redis.
+Hosting: **Railway** (default) or **AWS** (when the client needs it — decided in ADR-0001), in both cases deployed
+**only through GitHub** (see `09-deployment-infra`). Every component is its own service: site/admin, landing page,
+server engine, worker, agents service, PostgreSQL, Redis (Railway services, or ECS services + RDS + ElastiCache on AWS).
 
 ## Before choosing any package or version
 Run the dependency vetting process (`13-dependencies-supply-chain`): latest stable version with **no known
@@ -39,7 +40,8 @@ iterate → launch → post-launch (business model, reports, investor deck).
 - Push or merge to `staging` or `main`, or force-push any shared branch.
 - Create `staging`/`main` (or any non-`develop` long-lived branch) on the local machine.
 - Run migrations, seeds or destructive commands against staging/production.
-- Deploy manually (e.g. `railway up` from a laptop), change DNS, rotate production secrets, change billing,
+- Deploy manually (`railway up` from a laptop, AWS console/CLI changes to staging/production, `terraform apply`
+  on staging/production), change DNS, rotate production secrets, change billing,
   launch or change budgets of paid ad campaigns, submit apps to stores, publish content publicly.
 - Commit secrets, tokens, `.env` files, API keys (including MCP keys) or real customer data.
 - Disable tests, lint, type checks or security scans to make something pass.

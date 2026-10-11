@@ -2,7 +2,7 @@
 # Spacode — set up a GitHub repo for the develop → staging → main flow.
 # Requires: GitHub CLI (`gh auth login`) with admin rights on the repo.
 #
-# Usage: ./scripts/setup-github.sh <owner/repo> [--reviewer <github-username>]
+# Usage: ./scripts/setup-github.sh <owner/repo> [--reviewer <github-username>] [--hosting railway|aws]
 #
 # Creates: develop + staging branches, default branch = develop, branch protection on
 # develop/staging/main, GitHub Environments development/staging/production
@@ -12,9 +12,9 @@ set -euo pipefail
 
 REPO="${1:-}"; [[ -z "$REPO" ]] && { echo "Usage: $0 <owner/repo> [--reviewer user]"; exit 1; }
 shift || true
-REVIEWER=""
+REVIEWER="" HOSTING="railway"
 while [[ $# -gt 0 ]]; do
-  case "$1" in --reviewer) REVIEWER="$2"; shift 2 ;; *) echo "Unknown option $1"; exit 1 ;; esac
+  case "$1" in --reviewer) REVIEWER="$2"; shift 2 ;; --hosting) HOSTING="$2"; shift 2 ;; *) echo "Unknown option $1"; exit 1 ;; esac
 done
 [[ -z "$REVIEWER" ]] && REVIEWER="$(gh api user -q .login)"
 
@@ -70,14 +70,24 @@ JSON
   fi
   echo "• environment $env"
 done
+if [[ "$HOSTING" == "aws" ]]; then
+  gh api -X PUT "repos/$REPO/environments/production-plan" >/dev/null   # terraform plan for PRs into main, no approval needed
+  echo "• environment production-plan (Terraform plan only)"
+fi
+gh api -X POST "repos/$REPO/actions/variables" -f name=HOSTING -f value="$HOSTING" >/dev/null 2>&1 \
+  || gh api -X PATCH "repos/$REPO/actions/variables/HOSTING" -f name=HOSTING -f value="$HOSTING" >/dev/null
+echo "• repository variable HOSTING=$HOSTING"
 
-cat <<EOF
-
-✔ GitHub configured. Now add per-environment secrets/variables (Settings → Environments):
-  variables: WEB_URL, API_URL, RAILWAY_SERVICES ("web engine worker agents"), LIGHTHOUSE_EXTRA_URLS (optional)
-  secrets:   RAILWAY_TOKEN (Railway project token for that environment), E2E_USER, E2E_PASSWORD,
-             EXPO_TOKEN (mobile projects), LHCI_GITHUB_APP_TOKEN (optional)
-  Also: Settings → Code security → enable secret scanning + push protection, Dependabot alerts.
-  Railway: turn OFF autodeploy on services deployed by pipeline.yml.
-  Local machine: keep only develop (git switch develop && git branch -D main).
-EOF
+echo
+echo "✔ GitHub configured. Now add per-environment secrets/variables (Settings → Environments):"
+echo "  all:     WEB_URL, API_URL, LIGHTHOUSE_EXTRA_URLS (optional) · secrets E2E_USER, E2E_PASSWORD, EXPO_TOKEN (mobile)"
+if [[ "$HOSTING" == "aws" ]]; then
+  echo "  aws:     AWS_REGION, AWS_ROLE_ARN (OIDC deploy role), ECS_CLUSTER, ECS_SERVICE_PREFIX, ECS_SERVICES,"
+  echo "           ECR_REPO_PREFIX, ECS_MIGRATION_SERVICE, MIGRATION_COMMAND (JSON array),"
+  echo "           AWS_INFRA_PLAN_ROLE_ARN / AWS_INFRA_APPLY_ROLE_ARN (Terraform) — no access keys anywhere"
+else
+  echo "  railway: RAILWAY_SERVICES (\"web engine worker agents\") · secret RAILWAY_TOKEN (project token per environment)"
+  echo "           and turn OFF autodeploy on Railway services deployed by pipeline.yml"
+fi
+echo "  Also: Settings → Code security → secret scanning + push protection, Dependabot alerts."
+echo "  Local machine: keep only develop (git switch develop && git branch -D main)."

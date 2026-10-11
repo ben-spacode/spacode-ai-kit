@@ -1,0 +1,6 @@
+## Spacode adapter (read first)
+This skill is vendored from an external MIT-licensed repository (see `THIRD_PARTY_NOTICES.md` in the Spacode kit). In Spacode projects:
+- **Product/marketing context:** instead of `.agents/product-marketing.md`, read `docs/brand/BRAND-GUIDE.md`, the relevant PRD in `docs/prd/`, `docs/marketing/keyword-map.csv` and `docs/marketing/PAID-ADS-APPENDIX.md` if they exist. Ask only for what is missing.
+- **Language:** write user-facing copy in natural Hebrew (RTL) unless the project is bilingual; keep the brand tone of voice. Explanations to the user in Hebrew.
+- **Skills referenced below that are not in the Spacode kit** map to: `seo-audit` / `schema` / `programmatic-seo` → `seo-foundation`, `content-engine`; `cro` / `popups` / `page-cro` → `landing-campaign`; `offers` / `pricing` → `business-model`; `emails` / `sequences` → `whatsapp-lead-engine`; `copy-editing` → this skill (`copywriting`); `ads` / `ad-creative` → `paid-ads-appendix`; `competitors` → `competitor-content-gap`.
+- Follow the Spacode rules: truthful claims only (no invented numbers, testimonials or urgency), accessibility (IS 5568), and the organic/paid rules `10-seo-organic`, `14-paid-marketing`, `15-landing-branding`.

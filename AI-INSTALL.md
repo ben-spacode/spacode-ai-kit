@@ -12,6 +12,7 @@ them from the kit, so the project gets the exact versions.
    - Client name (optional)
    - GitHub owner/username (for CODEOWNERS, optional)
    - Does the project include an Expo mobile app? (yes → `--mobile`)
+   - Hosting: Railway (default) or AWS? (→ `--hosting railway|aws`)
 3. **Get the kit** into a temporary folder **outside** the project. The repo may be private, so use the
    user's existing GitHub authentication:
    ```bash
@@ -24,7 +25,7 @@ them from the kit, so the project gets the exact versions.
 4. **Run the installer** from the kit against the project root:
    ```bash
    bash "$KIT_TMP/kit/scripts/install-spacode-kit.sh" "<PROJECT_ROOT>" \
-     --name "<name>" [--client "<client>"] [--owner "<github-user>"] [--mobile]
+     --name "<name>" [--client "<client>"] [--owner "<github-user>"] [--hosting railway|aws] [--mobile]
    ```
    - Never pass `--force` unless the user explicitly asks to overwrite existing project files.
    - Rules (`.cursor/rules`) and skills (`.cursor/skills`, `.claude/skills`) are always refreshed. That is expected.
@@ -33,7 +34,7 @@ them from the kit, so the project gets the exact versions.
    - Which kit version was installed (`.cursor/.spacode-kit-version`)
    - How many rules and skills were installed, and which files were skipped because they already existed
    - The installer's "Next steps" list, especially: fill the AGENTS.md placeholders, set `STITCH_API_KEY` in the OS
-     environment and check Cursor Settings → MCP, then run `scripts/setup-github.sh <owner/repo>` **from the kit**
+     environment and check Cursor Settings → MCP, then run `scripts/setup-github.sh <owner/repo> --hosting <railway|aws>` **from the kit**
      to create the branches, required checks and environments (this needs `gh` with admin rights; ask before running it).
 7. **Do not commit or push** unless the user asks. If asked, commit with
    `chore: apply spacode ai kit v<version>` on the current branch.

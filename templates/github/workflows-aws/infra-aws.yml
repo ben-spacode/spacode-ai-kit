@@ -1,0 +1,62 @@
+name: Infra (AWS / Terraform)
+
+# Only for projects with HOSTING=aws. Infrastructure changes go through GitHub like code:
+#   PR touching infra/ → plan (+ IaC security scan) · merge → apply for the matching environment.
+#   develop → development · staging → staging · main → production (GitHub Environment approval required).
+on:
+  pull_request:
+    branches: [develop, staging, main]
+    paths: ["infra/**"]
+  push:
+    branches: [develop, staging, main]
+    paths: ["infra/**"]
+
+concurrency:
+  group: infra-${{ github.base_ref || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TF_ENV: ${{ (github.base_ref || github.ref_name) == 'main' && 'production' || ((github.base_ref || github.ref_name) == 'staging' && 'staging' || 'development') }}
+
+jobs:
+  plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    environment: ${{ (github.base_ref == 'main' && 'production-plan') || (github.base_ref == 'staging' && 'staging') || 'development' }}
+    permissions: { contents: read, id-token: write, pull-requests: write }
+    defaults:
+      run: { working-directory: "infra/envs/${{ env.TF_ENV }}" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_INFRA_PLAN_ROLE_ARN }}   # read-only plan role
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: terraform fmt -check -recursive ../../
+      - run: terraform init -input=false
+      - run: terraform validate
+      - name: IaC security scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with: { scan-type: config, scan-ref: infra, severity: "HIGH,CRITICAL", exit-code: "1" }
+      - run: terraform plan -input=false -no-color -out=tfplan
+      - run: terraform show -no-color tfplan > plan.txt
+      - uses: actions/upload-artifact@v4
+        with: { name: "tfplan-${{ env.TF_ENV }}", path: "infra/envs/${{ env.TF_ENV }}/plan.txt" }
+
+  apply:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || (github.ref_name == 'staging' && 'staging' || 'development') }}
+    permissions: { contents: read, id-token: write }
+    defaults:
+      run: { working-directory: "infra/envs/${{ env.TF_ENV }}" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_INFRA_APPLY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: terraform init -input=false
+      - run: terraform apply -input=false -auto-approve

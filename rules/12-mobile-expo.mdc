@@ -37,6 +37,9 @@ deletion in-app (required by both stores when sign-up exists), App Tracking Tran
 permissions with clear Hebrew purpose strings, screenshots per required device sizes, content rating, test
 account for reviewers, Sign in with Apple if other social logins exist on iOS.
 
+## Design & motion
+Apple-quality feel: `apple-design` principles, implemented with `animate-expo` (Reanimated, Gesture Handler, expo-haptics), Reduce Motion respected.
+
 ## Testing
 Unit (Jest + React Native Testing Library), E2E with **Maestro** flows on preview builds (full suite level),
 real-device checks on at least one iOS and one Android device before `main`. Crash reporting (Sentry) per variant.

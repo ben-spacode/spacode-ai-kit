@@ -12,6 +12,7 @@ Business, category, target audiences (2–3 personas), competitors (3–5) and h
 this business, proof points, price positioning, personality (3–5 adjectives), what the brand is **not**.
 
 ## 2. Write the guide
+Use `marketing-psychology` to choose ethical persuasion levers per persona and `copywriting` for taglines and boilerplate.
 1. **Positioning statement:** For <audience> who <need>, <brand> is the <category> that <key benefit>, unlike <alternative>, because <reason to believe>.
 2. **Value proposition** (one line) + 3 **messaging pillars** with proof for each.
 3. **Tone of voice in Hebrew:** register (את/אתה vs. רבים, formal vs. friendly), do/don't word list, example rewrites.

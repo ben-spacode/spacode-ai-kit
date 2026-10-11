@@ -27,6 +27,6 @@ Positive, negative, follow-up work, risks, how we'd reverse it and at what cost.
 
 3. Accepted ADRs are immutable. To change a decision, write a new ADR and mark the old one `Superseded`.
 
-## Hosting guide (for ADR-0001) — Railway is the default; AWS only as a documented exception
+## Hosting guide (for ADR-0001) — Railway is the default; AWS when the client's needs call for it
 - Railway: budget-sensitive client, ≤ medium load, small team, need speed, no strict compliance. Watch: egress cost, region (latency to Israel), backup policy.
 - AWS: compliance/enterprise, client-owned account, high scale or VPC needs, services beyond basics (SQS, Bedrock, etc.). Requires IaC and higher ops effort; region `il-central-1` (Tel Aviv) for data residency if required.

@@ -8,7 +8,8 @@
 ## Decision
 - Stack: NestJS (api + worker), Next.js (web), PostgreSQL, Redis + BullMQ, TypeScript.
 - ORM: <Prisma | TypeORM>
-- Hosting: Railway (project <name>), environments development / staging / production; one service per component (web, landing, engine, worker, agents, postgres, redis). Deploy method: Railway GitHub integration with "Wait for CI" | GitHub Actions.
+- Hosting: <Railway (project <name>) | AWS (account(s), region e.g. il-central-1)>, environments development / staging / production; one service per component (web, landing, engine, worker, agents, postgres, redis). Deploy: GitHub Actions `pipeline.yml` with `HOSTING=<railway|aws>`.
+- Why this hosting: <budget, compliance, client-owned account, scale>.
 - Mobile (if any): Expo + EAS (profiles development / preview / production).
 - AI provider for agents: <Claude API | OpenAI API>.
 - Tenancy: shared DB with `tenant_id` + <RLS yes/no>.

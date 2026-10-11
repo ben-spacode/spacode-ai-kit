@@ -1,0 +1,1 @@
+Vendored from https://github.com/coreyhaines31/marketingskills.git (skills/site-architecture) at commit 1efedbc. License: MIT. Spacode adapter: vendor/adapters/site-architecture.md

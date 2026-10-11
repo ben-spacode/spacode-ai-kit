@@ -32,5 +32,8 @@ Secrets: `EXPO_TOKEN` in GitHub; store credentials managed by EAS.
 Privacy policy, Apple privacy labels, Google Data Safety, in-app account deletion, permission strings (Hebrew),
 ATT if tracking, screenshots/sizes, reviewer test account, content rating, support URL. Human submits/approves releases.
 
+## 5b. Design & motion
+UI feel per `apple-design` principles; animations, gestures, sheets and haptics per `animate-expo` (Reanimated + Gesture Handler, UI thread, springs).
+
 ## 6. Tests
 Jest + RNTL for components/hooks; Maestro flows in `apps/mobile/.maestro/` for login and core journeys; real-device check iOS + Android before `main`.

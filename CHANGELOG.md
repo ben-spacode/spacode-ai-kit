@@ -1,5 +1,37 @@
 # Changelog — Spacode AI Kit
 
+## [2.4.0] — 2026-10-11
+### Added
+- web-page-analyzer — analyze any page/site/system/store/ad/post and what to take from it
+- frontend-design-partner — taste rules, tokens, component states, screenshot verification loop, UI audit
+- universal-reel-analyzer — any platform, any business profile (replaces social-reel-analyzer)
+- site-to-stitch — website/system → Google Stitch screens via the Stitch MCP (adapted from a Figma-based skill)
+### Changed
+- stitch-design lists the Stitch MCP tools and starts optionally from site-to-stitch; growth-engine, rules 03/16 and
+  nextjs-feature include the new skills
+### Removed
+- social-reel-analyzer (merged into universal-reel-analyzer)
+
+## [2.3.0] — 2026-10-11
+### Added
+- Vendored skills (MIT): copywriting, site-architecture, marketing-psychology (coreyhaines31/marketingskills);
+  apple-design, animate-expo, mobile-native (emilkowalski/skills) — with Spacode adapters, LICENSE and SOURCE.txt each
+- vendor/skills.json, vendor/adapters/, scripts/update-vendored-skills.sh, THIRD_PARTY_NOTICES.md
+- Skills: gsc-ctr-optimizer, social-reel-analyzer, competitor-content-gap (adapted for Cursor and the Spacode flow)
+- growth-engine: one workflow that orders and connects all marketing, SEO and design skills
+### Changed
+- landing-campaign, content-engine, seo-foundation, brand-identity, stitch-design, expo-eas-app, nextjs-feature,
+  project-kickoff and rules 10/12/15/16 now reference the new skills
+
+## [2.2.0] — 2026-10-11
+### Added
+- AWS as a full hosting option: `pipeline.yml` AWS mode (OIDC → ECR → migration ECS task → task-definition revisions → update-service → wait stable)
+- `infra-aws.yml`: Terraform plan on PR (+ IaC security scan), apply after merge per environment
+- `--hosting railway|aws` in install-spacode-kit.sh, setup-github.sh and AI-INSTALL.md; repository variable HOSTING
+### Changed
+- Rules 00/09, AGENTS.md, ADR-0001, project-kickoff and deploy-aws describe Railway-or-AWS with the same GitHub-only principle
+- version.json is also written to apps/web/public so Next.js serves it
+
 ## [2.1.0] — 2026-10-09
 ### Added
 - AI-INSTALL.md — exact instructions for an AI agent given the repo URL

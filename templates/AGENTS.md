@@ -9,7 +9,7 @@
 - **Owner / CTO:** Spacode — Ben Efraimov
 - **What it does:** {{ONE_LINE_DESCRIPTION}}
 - **Project type:** {{website+admin | landing page | mobile app | combination}}
-- **Hosting:** Railway, deployed only through GitHub — see `docs/adr/ADR-0001-stack-and-hosting.md`
+- **Hosting:** {{HOSTING}}, deployed only through GitHub — see `docs/adr/ADR-0001-stack-and-hosting.md`
 - **Domains:** dev: {{dev.domain}} · staging: {{staging.domain}} · prod: {{domain}}
 - **AI provider (agents):** {{Claude API | OpenAI API}}
 
@@ -19,7 +19,7 @@
 - `apps/worker` — queue processors · `apps/agents` — AI agents service (customer-service agent + future agents)
 - `apps/mobile` — Expo + EAS (if a mobile app)
 - PostgreSQL · Redis · TypeScript strict / Python typed · Hebrew RTL first
-- Railway services: web · landing · engine · worker · agents · postgres · redis
+- Services: web · landing · engine · worker · agents · postgres · redis (Railway services, or ECS + RDS + ElastiCache on AWS)
 
 ## Commands
 ```bash
@@ -34,7 +34,7 @@ pnpm db:migrate:dev     # create/apply migration locally ONLY
 ## Non-negotiables (summary)
 1. Locally only `develop` + work branches from it. Flow: work branch → `develop` → `staging` → `main`. Never push/merge to `staging`/`main` yourself.
 2. Partial tests before `develop`; full functional + non-functional tests from `develop` up. Red check = no merge.
-3. Railway is updated only by GitHub merges — never deploy from a laptop.
+3. The infrastructure (Railway or AWS) is updated only by GitHub merges — never deploy from a laptop or the console.
 4. Vet every dependency/version for vulnerabilities before adding it.
 5. PRD → ERD → ADR → design (Stitch MCP) → skeleton → code. Plan first for > 3 files or DB/infra.
 6. Every tenant-owned query is scoped by `tenant_id`; test cross-tenant access.

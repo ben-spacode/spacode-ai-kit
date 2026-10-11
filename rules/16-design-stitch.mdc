@@ -28,4 +28,4 @@ alwaysApply: false
    reference, never pasted as-is.
 5. **Review:** compare implementation to Stitch screens (desktop + 375px), run accessibility checks, get CTO sign-off.
 
-Skill: `stitch-design`.
+Skills: `site-to-stitch` (import a reference site/system into Stitch), `stitch-design`, then `apple-design` (web motion/interaction), `mobile-native` (web on phones), `animate-expo` (Expo), and `frontend-design-partner` for taste rules and the visual verification loop.

@@ -8,6 +8,7 @@ description: Implement the organic-promotion infrastructure in a Next.js project
 Read `.cursor/rules/10-seo-organic.mdc` first. Templates are in the kit under `templates/nextjs-seo/` (installed to `docs/templates/nextjs-seo/`).
 
 ## Steps
+0. Page hierarchy, URL patterns and navigation come from `site-architecture` (run it first for new sites).
 1. **Env config:** `NEXT_PUBLIC_SITE_URL`, `APP_ENV`, analytics IDs. `metadataBase = new URL(SITE_URL)`.
 2. **robots.ts:** production → allow `/`, disallow `/admin`, `/api`, `/auth`, thank-you pages; `sitemap: SITE_URL/sitemap.xml`.
    Other environments → `disallow: '/'`. Also add `X-Robots-Tag: noindex, nofollow` header in middleware/`next.config` outside production.
